@@ -56,9 +56,9 @@ def generate_input_fields(client, plan_names):
     plan_data = []
     for i, plan_name in enumerate(plan_names):
         st.subheader(f'{plan_name} for {client}')
-        i_num_lives = st.number_input(f'Number of Individual Lives on {plan_name}', min_value=1)
+        i_num_lives = st.number_input(f'Number of Individual Lives on {plan_name}', min_value=0)
         i_premium_paid = st.number_input(f'Premium for Individual Lives on {plan_name}', min_value=20000)
-        f_num_lives = st.number_input(f'Number of Family Lives on {plan_name}', min_value=1)
+        f_num_lives = st.number_input(f'Number of Family Lives on {plan_name}', min_value=0)
         f_premium_paid = st.number_input(f'Premium for Family Lives on {plan_name}', min_value=20000)
         total_lives = st.number_input(f'Input the total number of Lives on {plan_name}', min_value=1)
         plan_data.append({'client': client, 'plan_name': plan_name, 'i_num_lives': i_num_lives, 'f_num_lives': f_num_lives, 
