@@ -16,32 +16,32 @@ st.image(image, use_column_width=False)
 query = 'select * from tblEnrolleePremium'
 query1 = 'select * from vw_tbl_client_mlr'
 
-# server = os.environ.get('server_name')
-# database = os.environ.get('db_name')
-# username = os.environ.get('db_username')
-# password = os.environ.get('db_password')
-
-# conn = pyodbc.connect(
-#         'DRIVER={ODBC Driver 17 for SQL Server};SERVER='
-#         + server
-#         +';DATABASE='
-#         + database
-#         +';UID='
-#         + username
-#         +';PWD='
-#         + password
-#         )
+server = os.environ.get('server_name')
+database = os.environ.get('db_name')
+username = os.environ.get('db_username')
+password = os.environ.get('db_password')
 
 conn = pyodbc.connect(
         'DRIVER={ODBC Driver 17 for SQL Server};SERVER='
-        +st.secrets['server']
+        + server
         +';DATABASE='
-        +st.secrets['database']
+        + database
         +';UID='
-        +st.secrets['username']
+        + username
         +';PWD='
-        +st.secrets['password']
-        ) 
+        + password
+        )
+
+# conn = pyodbc.connect(
+#         'DRIVER={ODBC Driver 17 for SQL Server};SERVER='
+#         +st.secrets['server']
+#         +';DATABASE='
+#         +st.secrets['database']
+#         +';UID='
+#         +st.secrets['username']
+#         +';PWD='
+#         +st.secrets['password']
+#         ) 
 
 @st.cache_data(ttl = dt.timedelta(hours=24))
 def get_data_from_sql():  
