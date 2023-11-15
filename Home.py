@@ -129,7 +129,7 @@ if client is not None:
     if shared_portfolio == 'Yes':
         competitor = st.text_input(label='List the HMOs we are sharing the portfolio with', help='If more than one, seperate the names with comma')
     else:
-        competitor = None
+        competitor = 'null'
     total_actual_premium = st.number_input(f'Input the actual total premium paid by {client}', value=None)
     notes = st.text_area(label='Additional Notes/Remarks')
 
