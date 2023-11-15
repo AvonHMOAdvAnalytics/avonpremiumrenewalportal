@@ -129,7 +129,7 @@ if client is not None:
     if shared_portfolio == 'Yes':
         competitor = st.text_input(label='List the HMOs we are sharing the portfolio with', help='If more than one, seperate the names with comma')
     else:
-        competitor = 'null'
+        competitor = None
     total_actual_premium = st.number_input(f'Input the actual total premium paid by {client}', value=None)
     notes = st.text_area(label='Additional Notes/Remarks')
 
@@ -167,7 +167,6 @@ if client is not None:
     client_medicalcost = round(client_medicalcost_data.sum(),2)
     client_mlr = round((client_medicalcost/client_revenue)*100, 2)
 
-
     if st.button('Submit'):
         cursor = conn.cursor()
         for plan in plan_data:
@@ -187,7 +186,7 @@ if client is not None:
                     policy_start_date, policy_end_date, AdditionalNotes, client_manager, date_submitted)\
                         VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
                     (policyno, client, int(num_plans), int(total_lives), int(total_calc_premium), int(total_actual_premium),
-                        client_mlr, int(year_joined), shared_portfolio, competitor, start_date, end_date, notes, client_mgr, dt.datetime.now())
+                        None if pd.isna(client_mlr) else float(client_mlr), int(year_joined), shared_portfolio, competitor, start_date, end_date, notes, client_mgr, dt.datetime.now())
                     )
         conn.commit()
         st.success(f'All {client} Renewal Information Submitted Sucessfully')
