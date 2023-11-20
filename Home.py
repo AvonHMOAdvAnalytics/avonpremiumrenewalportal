@@ -165,7 +165,20 @@ if client is not None:
 
     client_revenue = round(client_revenue_data.sum(),2)
     client_medicalcost = round(client_medicalcost_data.sum(),2)
-    client_mlr = round((client_medicalcost/client_revenue)*100, 2)
+    # Check if client_revenue is zero before calculating client_mlr
+    if client_revenue != 0:
+        client_mlr = round((client_medicalcost / client_revenue) * 100, 2)
+    else:
+    # Set client_mlr to a specific value when client_revenue is zero
+        client_mlr = None
+
+        # Button to preview data before submission
+    if st.button('Preview Client Renewal Information'):
+        st.subheader(f"{client}'s Plan Renewal Information:")
+        for plan in plan_data:
+            st.info(f"Plan Name: {plan['plan_name']}\n\n Individual Lives: {plan['i_num_lives']}\n\n Individual Premium: {plan['i_premium_paid']}\n\nFamily Lives: {plan['f_num_lives']}\n\n Family Premium: {plan['f_premium_paid']}\n\nTotal Lives on this plan: {plan['total_lives']}")
+        st.info(f'Additonal {client} Renewal Information\n\nPolicy Period: {start_date} to {end_date}\n\nCurrent MLR: {client_mlr}%\n\nTotal Premium Paid: {total_actual_premium}\n\nShared Portfolio: {shared_portfolio}\n\nAdditional Comments: {notes}')
+        st.success("Kindly Review the Client Information above and confirm it's accuracy and click on the Submit button below")
 
     if st.button('Submit'):
         cursor = conn.cursor()
