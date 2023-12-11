@@ -24,45 +24,56 @@ query1 = 'select * from vw_tbl_client_mlr'
 query2 = 'select * from premium_calculator_pa_data'
 
 #assign the DB credentials to variables
-# server = os.environ.get('server_name')
-# database = os.environ.get('db_name')
-# username = os.environ.get('db_username')
-# password = os.environ.get('db_password')
+server = os.environ.get('server_name')
+database = os.environ.get('db_name')
+database1 = os.environ.get('db1_name')
+username = os.environ.get('db_username')
+password = os.environ.get('db_password')
 
 #define the DB connection
-# conn = pyodbc.connect(
-#         'DRIVER={ODBC Driver 17 for SQL Server};SERVER='
-#         + server
-#         +';DATABASE='
-#         + database
-#         +';UID='
-#         + username
-#         +';PWD='
-#         + password
-#         )
-
-#define the connection for the DBs
 conn = pyodbc.connect(
         'DRIVER={ODBC Driver 17 for SQL Server};SERVER='
-        +st.secrets['server']
+        + server
         +';DATABASE='
-        +st.secrets['database']
+        + database
         +';UID='
-        +st.secrets['username']
+        + username
         +';PWD='
-        +st.secrets['password']
-        ) 
-
+        + password
+        )
 conn1 = pyodbc.connect(
         'DRIVER={ODBC Driver 17 for SQL Server};SERVER='
-        +st.secrets['server']
+        + server
         +';DATABASE='
-        +st.secrets['database1']
+        + database1
         +';UID='
-        +st.secrets['username']
+        + username
         +';PWD='
-        +st.secrets['password']
-        ) 
+        + password
+        )
+
+#define the connection for the DBs
+# conn = pyodbc.connect(
+#         'DRIVER={ODBC Driver 17 for SQL Server};SERVER='
+#         +st.secrets['server']
+#         +';DATABASE='
+#         +st.secrets['database']
+#         +';UID='
+#         +st.secrets['username']
+#         +';PWD='
+#         +st.secrets['password']
+#         ) 
+
+# conn1 = pyodbc.connect(
+#         'DRIVER={ODBC Driver 17 for SQL Server};SERVER='
+#         +st.secrets['server']
+#         +';DATABASE='
+#         +st.secrets['database1']
+#         +';UID='
+#         +st.secrets['username']
+#         +';PWD='
+#         +st.secrets['password']
+#         ) 
 
 #write a function to read the data from the DBs
 @st.cache_data(ttl = dt.timedelta(hours=24))
@@ -645,7 +656,7 @@ if client is not None:
             final_message = msg_befor_table + plan_html_table + html_table
 
             myemail = 'ademola.atolagbe@avonhealthcare.com'
-            password = 'ndbxxttqzvrrpywq'
+            password = os.environ.get('emailpassword')
 
             try:
                 server = smtplib.SMTP('smtp.office365.com', 587)
