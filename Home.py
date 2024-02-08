@@ -295,28 +295,28 @@ if client is not None and client_mgr is not None:
         # Convert plan_data to a pandas df for easier manipulation
         plan_df = pd.DataFrame(plan_data)
 
-        #calculate the total premium and total lives from the inputted info by the client mgr
-        total_premium = (plan_df['i_num_lives'] * plan_df['i_premium_paid']) + (plan_df['f_num_lives'] * plan_df['f_premium_paid'])
-        total_calc_premium = total_premium.sum()
-        total_lives = plan_df['total_lives'].sum()
-        #create a subheader for the second part of the input fields
-        st.subheader('Provide Additional Information Below About the Client')
-        #specify the other input fields and assign them to variables as below
-        year_joined = st.number_input(label='Client Onboarding Year',min_value=2013, max_value=dt.date.today().year)
-        shared_portfolio = st.radio(label='Is this a shared portfolio?',index=None, options=['No', 'Yes'])
-        if shared_portfolio == 'Yes':
-            competitor = st.text_input(label='List the HMOs we are sharing the portfolio with', help='If more than one, seperate the names with comma')
-        else:
-            competitor = None
-        total_actual_premium = st.number_input(f'Input the actual total premium paid by {client}', value=0)
-        notes = st.text_area(label='Additional Notes/Remarks')
-        #extract the policy start and end date for the selected clients from the
-        #active_clients table and assign to a variable.
-        start_date = active_clients.loc[
-            active_clients['PolicyName'] == client,
-            'FromDate'
-            ].dt.date.unique()
-        start_date = np.min(start_date)
+    #calculate the total premium and total lives from the inputted info by the client mgr
+    total_premium = (plan_df['i_num_lives'] * plan_df['i_premium_paid']) + (plan_df['f_num_lives'] * plan_df['f_premium_paid'])
+    total_calc_premium = total_premium.sum()
+    total_lives = plan_df['total_lives'].sum()
+    #create a subheader for the second part of the input fields
+    st.subheader('Provide Additional Information Below About the Client')
+    #specify the other input fields and assign them to variables as below
+    year_joined = st.number_input(label='Client Onboarding Year',min_value=2013, max_value=dt.date.today().year)
+    shared_portfolio = st.radio(label='Is this a shared portfolio?',index=None, options=['No', 'Yes'])
+    if shared_portfolio == 'Yes':
+        competitor = st.text_input(label='List the HMOs we are sharing the portfolio with', help='If more than one, seperate the names with comma')
+    else:
+        competitor = None
+    total_actual_premium = st.number_input(f'Input the actual total premium paid by {client}', value=None)
+    notes = st.text_area(label='Additional Notes/Remarks')
+    #extract the policy start and end date for the selected clients from the
+    #active_clients table and assign to a variable.
+    start_date = active_clients.loc[
+        active_clients['PolicyName'] == client,
+        'FromDate'
+        ].dt.date.unique()
+    start_date = np.min(start_date)
 
         end_date = active_clients.loc[
             active_clients['PolicyName'] == client,
