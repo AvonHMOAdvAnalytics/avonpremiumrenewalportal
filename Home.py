@@ -56,7 +56,7 @@ conn1 = pyodbc.connect(
         + password
         )
 
-# #define the connection for the DBs
+#define the connection for the DBs
 # conn = pyodbc.connect(
 #         'DRIVER={ODBC Driver 17 for SQL Server};SERVER='
 #         +st.secrets['server']
@@ -165,12 +165,15 @@ def generate_input_fields(client, plan_names):
             (active_clients['PolicyName'] == client) &
             (active_clients['PlanType'] == plan_name), 'FamilyCirculationRate'
         ].values[0]
-        plan_data.append({'client': client, 'plan_id': str(policyid) + '-' + str(i+1), 'plan_name': plan_name, 'category': plan_category,
-                        'i_num_lives': i_num_lives, 'f_num_lives': f_num_lives, 'i_premium_paid': i_premium_paid,
-                        'f_premium_paid': f_premium_paid, 'total_lives': total_lives, 'repriced':repriced, 'repriced_yr':repriced_yr,
-                        'upsell':upsell, 'upsell_yr':upsell_yr, 'upsell_notes':upsell_note, 'iBaseRate': i_baserate,
-                        'fBaseRate': f_baserate,'iCirculationRate': i_circulationrate, 'fCirculationRate': f_circulationrate,
-                        'repriced_percent':repriced_percent})
+
+        #check if either i_num_lives or f_num_lives is greater than 0
+        if (i_num_lives is not None and i_num_lives > 0) or (f_num_lives is not None and f_num_lives > 0):
+            plan_data.append({'client': client, 'plan_id': str(policyid) + '-' + str(i+1), 'plan_name': plan_name, 'category': plan_category,
+                            'i_num_lives': i_num_lives, 'f_num_lives': f_num_lives, 'i_premium_paid': i_premium_paid,
+                            'f_premium_paid': f_premium_paid, 'total_lives': total_lives, 'repriced':repriced, 'repriced_yr':repriced_yr,
+                            'upsell':upsell, 'upsell_yr':upsell_yr, 'upsell_notes':upsell_note, 'iBaseRate': i_baserate,
+                            'fBaseRate': f_baserate,'iCirculationRate': i_circulationrate, 'fCirculationRate': f_circulationrate,
+                            'repriced_percent':repriced_percent})
     return plan_data
 #function to clear the plan_data when it has been submitted and written to the DB
 def reset_data():
@@ -574,9 +577,43 @@ if client is not None and client_mgr is not None:
         # Convert DataFrame to HTML table
         plan_table = plan_info.to_html(index=False)
 
+        #add styling to the plan_html_table
+                
+        
         plan_html_table = f"""
         <h2>{client} Plan(s) Renewal Information</h2>
+        <style>
+        table {{
+                border: 1px solid #1C6EA4;
+                background-color: #EEEEEE;
+                width: 100%;
+                text-align: left;
+                border-collapse: collapse;
+                }}
+                table td, table th {{
+                border: 1px solid #AAAAAA;
+                padding: 3px 2px;
+                }}
+                table tbody td {{
+                font-size: 13px;
+                }}
+                table thead {{
+                background: #59058D;
+                border-bottom: 2px solid #444444;
+                }}
+                table thead th {{
+                font-size: 15px;
+                font-weight: bold;
+                color: #FFFFFF;
+                border-left: 2px solid #D0E4F5;
+                }}
+                table thead th:first-child {{
+                border-left: none;
+                }}
+        </style>
+        <table>
         {plan_table}
+        </table>
         """
 
         # Display HTML table using st.markdown()
@@ -752,9 +789,10 @@ if client is not None and client_mgr is not None:
                 st.success(f'All {client} Renewal Information Submitted Sucessfully')
 
                 # cc_email_list = ['bi_dataanalytics@avonhealthcare.com']
-                cc_email_list = ['internalauditriskandcontroldept@avonhealthcare.com','client.services@avonhealthcare.com',
+                cc_email_list = ['internalauditriskandcontroldept@avonhealthcare.com','idowu.sanni@avonhealthcare.com',
                                  'bi_dataanalytics@avonhealthcare.com', client_mgr_email]
-                subject = 'TESTING !!!! TESTING!!!! - CLIENT RENEWAL NOTIFICATION'
+                renewal_year = dt.datetime.now().year
+                subject = f'{renewal_year} RENEWAL NOTIFICATION for {client}'
                 # Create a table (HTML format) with some sample data
                 msg_befor_table = f'''
                 Dear Atinuke,<br><br>
@@ -775,8 +813,8 @@ if client is not None and client_mgr is not None:
                 final_message = msg_befor_table + plan_html_table + html_table + rec_msg + msg_after_tables
 
                 myemail = 'noreply@avonhealthcare.com'
-                password = 'AVHMOtech@29'
-                # password = os.environ.get('emailpassword')
+                # password = st.secrets['emailpassword']
+                password = os.environ.get('emailpassword')
                 recipient_email = 'atinuke.kolade@avonhealthcare.com'
                 email = [recipient_email]
 
