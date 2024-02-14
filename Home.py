@@ -22,19 +22,19 @@ st.image(image, use_column_width=True)
 
 #write the queries to pull data from the DB
 query = 'select * from tblEnrolleePremium'
-query1 = 'select * from vw_tbl_client_mlr'
+query1 = 'select * from vw_tbl_final_client_mlr'
 query2 = 'select * from premium_calculator_pa_data'
 query3 = 'select * from renewal_portal_plan_data'
 query4 = 'select * from renewal_portal_client_data'
 
-#assign the DB credentials to variables
+# assign the DB credentials to variables
 server = os.environ.get('server_name')
 database = os.environ.get('db_name')
 database1 = os.environ.get('db1_name')
 username = os.environ.get('db_username')
 password = os.environ.get('db_password')
 
-#define the DB connection
+# define the DB connection
 conn = pyodbc.connect(
         'DRIVER={ODBC Driver 17 for SQL Server};SERVER='
         + server
@@ -56,7 +56,7 @@ conn1 = pyodbc.connect(
         + password
         )
 
-#define the connection for the DBs
+# #define the connection for the DBs
 # conn = pyodbc.connect(
 #         'DRIVER={ODBC Driver 17 for SQL Server};SERVER='
 #         +st.secrets['server']
@@ -99,7 +99,7 @@ cols_to_convert = ['MemberNo', 'PolicyNo']
 pa_data[cols_to_convert] = pa_data[cols_to_convert].astype(str)
 pa_data['PAIssueDate'] = pd.to_datetime(pa_data['PAIssueDate']).dt.date
 
-client_mlr['TxDate'] = pd.to_datetime(client_mlr['TxDate']).dt.date
+# client_mlr['TxDate'] = pd.to_datetime(client_mlr['TxDate']).dt.date
 client_mlr['PolicyNo'] = client_mlr['PolicyNo'].astype(str)
 
 active_clients[cols_to_convert] = active_clients[cols_to_convert].astype(int).astype(str)
@@ -297,11 +297,13 @@ if client is not None and client_mgr is not None:
 
         # Convert plan_data to a pandas df for easier manipulation
         plan_df = pd.DataFrame(plan_data)
-
+        
         #calculate the total premium and total lives from the inputted info by the client mgr
-        total_premium = (plan_df['i_num_lives'] * plan_df['i_premium_paid']) + (plan_df['f_num_lives'] * plan_df['f_premium_paid'])
-        total_calc_premium = total_premium.sum()
-        total_lives = plan_df['total_lives'].sum()
+        #check if the plan_df is not empty
+        if not plan_df.empty:
+            total_premium = (plan_df['i_num_lives'] * plan_df['i_premium_paid']) + (plan_df['f_num_lives'] * plan_df['f_premium_paid'])
+            total_calc_premium = total_premium.sum()
+            total_lives = plan_df['total_lives'].sum()
         #create a subheader for the second part of the input fields
         st.subheader('Provide Additional Information Below About the Client')
         #specify the other input fields and assign them to variables as below
@@ -330,37 +332,38 @@ if client is not None and client_mgr is not None:
         # Extract the full month name
         policy_end_month = end_date.strftime('%B')
 
-        #extract the selected client revenue data within the policy start and end date
-        # from finance data and assign to a variable
-        client_revenue_data = client_mlr.loc[
-            (client_mlr['PolicyNo'] == policyno) &
-            (client_mlr['TxDate'] >= start_date) &
-            (client_mlr['TxDate'] <= end_date) &
-            (client_mlr['Category'] == 'Revenue'),
-            'Net_Amount'
-        ]
-        #extract the selected client medical cost data within the policy start and end date
-        # from finance data and assign to a variable
-        client_medicalcost_data = client_mlr.loc[
-            (client_mlr['PolicyNo'] == policyno) &
-            (client_mlr['TxDate'] >= start_date) &
-            (client_mlr['TxDate'] <= end_date) &
-            (client_mlr['Category'] == 'Cost of Sales'),
-            'Net_Amount'
-        ]
+        #check is policyno is available in client_mlr data
+        if policyno in client_mlr['PolicyNo'].values:
+            client_revenue = client_mlr.loc[
+                (client_mlr['PolicyNo'] == policyno),
+                'PREMIUM'
+            ].values[0]
+            #extract the selected client medical cost data within the policy start and end date
+            # from finance data and assign to a variable
+            client_medicalcost = client_mlr.loc[
+                (client_mlr['PolicyNo'] == policyno), 
+                'TOTAL_MEDICAL'
+            ].values[0]
+        else:
+            client_revenue = None
+            client_medicalcost = None
+
         #Sum the selected client revenue and medical cost within the policy period and assign to variables
-        client_revenue = round(client_revenue_data.astype(float).sum(),2)
-        client_medicalcost = round(client_medicalcost_data.astype(float).sum(),2)
+        # client_revenue = round(client_revenue_data.astype(float).sum(),2)
+        # client_medicalcost = round(client_medicalcost_data.astype(float).sum(),2)
         
-        # Check if client_revenue is zero before calculating client_mlr
-        if client_revenue != 0:
+        # Check if policyno is available in the client_mlr data
+        
+        if client_revenue is not None and client_medicalcost is not None:
             client_mlr = round((client_medicalcost / client_revenue) * 100, 2)
+            f_client_revenue = '#' + '{:,}'.format(client_revenue)
+            f_client_medicalcost = '#' + '{:,}'.format(client_medicalcost)
         else:
         # Set client_mlr to a specific value when client_revenue is zero
+            f_client_revenue = None
+            f_client_medicalcost = None
             client_mlr = None
         #add the # sign and thousand seperators to client revenue and medical cost
-        f_client_revenue = '#' + '{:,}'.format(client_revenue)
-        f_client_medicalcost = '#' + '{:,}'.format(client_medicalcost)
         f_total_actual_premium = '#' + '{:,}'.format(total_actual_premium)
         #extract the selected client PA utilization within its policy period from the PA data and assign to a variable
         client_pa_data = pa_data.loc[
@@ -553,301 +556,301 @@ if client is not None and client_mgr is not None:
         # cols_to_fmt = ['i_premium_paid', 'f_premium_paid', 'iBaseRate', 'fBaseRate', 'new_ipremium', 'new_fpremium']
 
         # display_info_df[cols_to_fmt] = display_info_df[cols_to_fmt].applymap(lambda x: '#' + '{:,}'.format(x))
+        #check if display_info_df is not empty
+        if not display_info_df.empty:
+            display_info = display_info_df[['plan_name', 'category', 'i_num_lives', 'f_num_lives', 'i_premium_paid', 'f_premium_paid',
+                                'total_lives', 'upsell', 'upsell_yr', 'upsell_notes', 'repriced', 'repriced_yr', 'repriced_percent', 'iBaseRate', 'fBaseRate', 'score',
+                                'recommendation', 'new_ipremium', 'new_fpremium']]
+            display_info = display_info.rename(columns={'plan_name':'Plan Name', 'category':'Category', 'i_num_lives': 'No. of Lives on Individual Plan',
+                                'f_num_lives':'Total No. of Family', 'i_premium_paid':'Premium per Individual Plan',
+                                'f_premium_paid':'Premium Per Family Plan', 'total_lives':'Total No. of Lives', 'upsell':'Plan Upsold in the Last 3Years?',
+                                'upsell_yr':'Year Plan was Upsold', 'upsell_notes':'Upsell Additional Info','repriced':'Plan Repriced in the Last 3 Years?', 'repriced_yr':'Last Repriced Year',
+                                'repriced_percent':'Last Repriced Percentage', 'iBaseRate':'Current Base Rate for Individual Plan',
+                                'fBaseRate':'Current BaseRate for Family Plan', 'score':'Total Reprice Score', 'recommendation':'Recommended Reprice Percentage(%)', 
+                                'new_ipremium':'Recommended Premium for Individual Plan', 'new_fpremium':'Recommended Premium for Family Plan'})
 
-
-        display_info = display_info_df[['plan_name', 'category', 'i_num_lives', 'f_num_lives', 'i_premium_paid', 'f_premium_paid',
-                            'total_lives', 'upsell', 'upsell_yr', 'upsell_notes', 'repriced', 'repriced_yr', 'repriced_percent', 'iBaseRate', 'fBaseRate', 'score',
-                            'recommendation', 'new_ipremium', 'new_fpremium']]
-        display_info = display_info.rename(columns={'plan_name':'Plan Name', 'category':'Category', 'i_num_lives': 'No. of Lives on Individual Plan',
-                            'f_num_lives':'Total No. of Family', 'i_premium_paid':'Premium per Individual Plan',
-                            'f_premium_paid':'Premium Per Family Plan', 'total_lives':'Total No. of Lives', 'upsell':'Plan Upsold in the Last 3Years?',
-                            'upsell_yr':'Year Plan was Upsold', 'upsell_notes':'Upsell Additional Info','repriced':'Plan Repriced in the Last 3 Years?', 'repriced_yr':'Last Repriced Year',
-                            'repriced_percent':'Last Repriced Percentage', 'iBaseRate':'Current Base Rate for Individual Plan',
-                            'fBaseRate':'Current BaseRate for Family Plan', 'score':'Total Reprice Score', 'recommendation':'Recommended Reprice Percentage(%)', 
-                            'new_ipremium':'Recommended Premium for Individual Plan', 'new_fpremium':'Recommended Premium for Family Plan'})
-
-        plan_info = display_info[['Plan Name', 'Category', 'No. of Lives on Individual Plan', 'Total No. of Family', 'Premium per Individual Plan',
-                                  'Premium Per Family Plan', 'Total No. of Lives', 'Plan Upsold in the Last 3Years?', 'Year Plan was Upsold',
-                                  'Upsell Additional Info', 'Plan Repriced in the Last 3 Years?', 'Last Repriced Year','Last Repriced Percentage'
-                                  ]]
-        
-        rec_info = display_info[['Plan Name', 'Premium per Individual Plan', 'Premium Per Family Plan', 'Recommended Reprice Percentage(%)',
-                                 'Current Base Rate for Individual Plan', 'Current BaseRate for Family Plan',
-                                 'Recommended Premium for Individual Plan', 'Recommended Premium for Family Plan']]
-        # Convert DataFrame to HTML table
-        plan_table = plan_info.to_html(index=False)
+            plan_info = display_info[['Plan Name', 'Category', 'No. of Lives on Individual Plan', 'Total No. of Family', 'Premium per Individual Plan',
+                                    'Premium Per Family Plan', 'Total No. of Lives', 'Plan Upsold in the Last 3Years?', 'Year Plan was Upsold',
+                                    'Upsell Additional Info', 'Plan Repriced in the Last 3 Years?', 'Last Repriced Year','Last Repriced Percentage'
+                                    ]]
+            
+            rec_info = display_info[['Plan Name', 'Premium per Individual Plan', 'Premium Per Family Plan', 'Recommended Reprice Percentage(%)',
+                                    'Current Base Rate for Individual Plan', 'Current BaseRate for Family Plan',
+                                    'Recommended Premium for Individual Plan', 'Recommended Premium for Family Plan']]
+            # Convert DataFrame to HTML table
+            plan_table = plan_info.to_html(index=False)
 
         #add styling to the plan_html_table
                 
         
-        plan_html_table = f"""
-        <h2>{client} Plan(s) Renewal Information</h2>
-        <style>
-        table {{
-                border: 1px solid #1C6EA4;
-                background-color: #EEEEEE;
-                width: 100%;
-                text-align: left;
-                border-collapse: collapse;
-                }}
-                table td, table th {{
-                border: 1px solid #AAAAAA;
-                padding: 3px 2px;
-                }}
-                table tbody td {{
-                font-size: 13px;
-                }}
-                table thead {{
-                background: #59058D;
-                border-bottom: 2px solid #444444;
-                }}
-                table thead th {{
-                font-size: 15px;
-                font-weight: bold;
-                color: #FFFFFF;
-                border-left: 2px solid #D0E4F5;
-                }}
-                table thead th:first-child {{
-                border-left: none;
-                }}
-        </style>
-        <table>
-        {plan_table}
-        </table>
+            plan_html_table = f"""
+            <h2>{client} Plan(s) Renewal Information</h2>
+            <style>
+            table {{
+                    border: 1px solid #1C6EA4;
+                    background-color: #EEEEEE;
+                    width: 100%;
+                    text-align: left;
+                    border-collapse: collapse;
+                    }}
+                    table td, table th {{
+                    border: 1px solid #AAAAAA;
+                    padding: 3px 2px;
+                    }}
+                    table tbody td {{
+                    font-size: 13px;
+                    }}
+                    table thead {{
+                    background: #59058D;
+                    border-bottom: 2px solid #444444;
+                    }}
+                    table thead th {{
+                    font-size: 15px;
+                    font-weight: bold;
+                    color: #FFFFFF;
+                    border-left: 2px solid #D0E4F5;
+                    }}
+                    table thead th:first-child {{
+                    border-left: none;
+                    }}
+            </style>
+            <table>
+            {plan_table}
+            </table>
+            """
+
+            # Display HTML table using st.markdown()
+            # st.markdown(plan_html_table, unsafe_allow_html=True)
+
+
+            html_table = f"""
+            <h2>Additonal Client Information Within Policy Year</h2>
+            <table border="1">
+                <tr>
+                    <th>Information</th>
+                    <th>Value</th>
+                </tr>
+                <tr>
+                    <td>Policy Period</td>
+                    <td>{start_date} to {end_date}</td>
+                </tr>
+                <tr>
+                    <td>Current MLR</td>
+                    <td>{client_mlr}%</td>
+                </tr>
+                <tr>
+                    <td>Total Portfolio Size</td>
+                    <td>{f_total_actual_premium}</td>
+                </tr>
+                <tr>
+                    <td>Client Onboarding Year</td>
+                    <td>{year_joined}</td>
+                </tr>
+                <tr>
+                    <td>Total PA Utilization Within Policy Period</td>
+                    <td>{f_client_pa_value}</td>
+                </tr>
+                <tr>
+                    <td>Total Medical Cost (Claims + Capitation) within Policy Period as confirmed by Finance</td>
+                    <td>{f_client_medicalcost}</td>
+                </tr>
+                <tr>
+                    <td>Total Revenue Received from Client within the Policy Period as confirmed by Finance</td>
+                    <td>{f_client_revenue}</td>
+                </tr>
+                <tr>
+                    <td>Total Number of Active Lives as Inputed by Client Manager</td>
+                    <td>{total_lives}</td>
+                </tr>
+                <tr>
+                    <td>Total Number of Active Lives from TOSHFA</td>
+                    <td>{f_total_active_lives}</td>
+                </tr>
+                <tr>
+                    <td>Total Number of Enrollees Who Accessed Care Within Policy Period</td>
+                    <td>{client_pa_count}</td>
+                </tr>
+                <tr>
+                    <td>Total Number of Providers Accessed Within the Policy Period</td>
+                    <td>{client_num_of_providers_used}</td>
+                </tr>
+                <tr>
+                    <td>Top 3 Providers Accessed</td>
+                    <td>{formatted_providers}</td>
+                </tr>
+                <tr>
+                    <td>Plan Population Distribution</td>
+                    <td>{plan_population}</td>
+                </tr>
+                <tr>
+                    <td>Plan Type Utilization Percentage</td>
+                    <td>{plan_utilization}</td>
+                </tr>
+                <tr>
+                    <td>Gender Utilization</td>
+                    <td>{gender_utilization}</td>
+                </tr>
+                <tr>
+                    <td>Member Type Utilization Percentage</td>
+                    <td>{member_utilization}</td>
+                </tr>
+                <tr>
+                    <td>Benefit Utilization</td>
+                    <td>{benefits_utilization}</td>
+                </tr>
+                <tr>
+                    <td>Is the Client a Shared Portfolio?</td>
+                    <td>{shared_portfolio}</td>
+                </tr>
+                <tr>
+                    <td>Additional Comments</td>
+                    <td>{notes}</td>
+                </tr>
+                <tr>
+                    <td>Client Manager</td>
+                    <td>{client_mgr}</td>
+                </tr>
+            </table><br><br>
         """
-
-        # Display HTML table using st.markdown()
-        # st.markdown(plan_html_table, unsafe_allow_html=True)
-
-
-        html_table = f"""
-        <h2>Additonal Client Information Within Policy Year</h2>
-        <table border="1">
-            <tr>
-                <th>Information</th>
-                <th>Value</th>
-            </tr>
-            <tr>
-                <td>Policy Period</td>
-                <td>{start_date} to {end_date}</td>
-            </tr>
-            <tr>
-                <td>Current MLR</td>
-                <td>{client_mlr}%</td>
-            </tr>
-            <tr>
-                <td>Total Portfolio Size</td>
-                <td>{f_total_actual_premium}</td>
-            </tr>
-            <tr>
-                <td>Client Onboarding Year</td>
-                <td>{year_joined}</td>
-            </tr>
-            <tr>
-                <td>Total PA Utilization Within Policy Period</td>
-                <td>{f_client_pa_value}</td>
-            </tr>
-            <tr>
-                <td>Total Medical Cost (Claims + Capitation) within Policy Period as confirmed by Finance</td>
-                <td>{f_client_medicalcost}</td>
-            </tr>
-            <tr>
-                <td>Total Revenue Received from Client within the Policy Period as confirmed by Finance</td>
-                <td>{f_client_revenue}</td>
-            </tr>
-            <tr>
-                <td>Total Number of Active Lives as Inputed by Client Manager</td>
-                <td>{total_lives}</td>
-            </tr>
-            <tr>
-                <td>Total Number of Active Lives from TOSHFA</td>
-                <td>{f_total_active_lives}</td>
-            </tr>
-            <tr>
-                <td>Total Number of Enrollees Who Accessed Care Within Policy Period</td>
-                <td>{client_pa_count}</td>
-            </tr>
-            <tr>
-                <td>Total Number of Providers Accessed Within the Policy Period</td>
-                <td>{client_num_of_providers_used}</td>
-            </tr>
-            <tr>
-                <td>Top 3 Providers Accessed</td>
-                <td>{formatted_providers}</td>
-            </tr>
-            <tr>
-                <td>Plan Population Distribution</td>
-                <td>{plan_population}</td>
-            </tr>
-            <tr>
-                <td>Plan Type Utilization Percentage</td>
-                <td>{plan_utilization}</td>
-            </tr>
-            <tr>
-                <td>Gender Utilization</td>
-                <td>{gender_utilization}</td>
-            </tr>
-            <tr>
-                <td>Member Type Utilization Percentage</td>
-                <td>{member_utilization}</td>
-            </tr>
-            <tr>
-                <td>Benefit Utilization</td>
-                <td>{benefits_utilization}</td>
-            </tr>
-            <tr>
-                <td>Is the Client a Shared Portfolio?</td>
-                <td>{shared_portfolio}</td>
-            </tr>
-            <tr>
-                <td>Additional Comments</td>
-                <td>{notes}</td>
-            </tr>
-            <tr>
-                <td>Client Manager</td>
-                <td>{client_mgr}</td>
-            </tr>
-        </table><br><br>
-    """
-        html_code = """
-                    <div style="width: 1000px; margin: 20px; padding: 10px; border: 1px solid #ccc;">
-                        <h2 style="text-align: center;">Detailed below is the client's current premium and the recommended renewal premium based on their utilization metrics within their policy year</h2>
-                        <table border="1" cellpadding="10" style="width: 100%;">
-                            <thead>
-                                <tr style="text-align: left;">
+            html_code = """
+                        <div style="width: 1000px; margin: 20px; padding: 10px; border: 1px solid #ccc;">
+                            <h2 style="text-align: center;">Detailed below is the client's current premium and the recommended renewal premium based on their utilization metrics within their policy year</h2>
+                            <table border="1" cellpadding="10" style="width: 100%;">
+                                <thead>
+                                    <tr style="text-align: left;">
+                                        {}
+                                    </tr>
+                                </thead>
+                                <tbody>
                                     {}
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {}
-                            </tbody>
-                        </table>
-                    </div>
-                """
+                                </tbody>
+                            </table>
+                        </div>
+                    """
 
-                # Format the HTML code with dynamic content
-        table_header = "".join(['<th>{}</th>'.format(col) for col in rec_info.columns])
-        table_body = "".join(['<tr>{}</tr>'.format("".join(['<td>{}</td>'.format(row[col]) for col in rec_info.columns])) for _, row in rec_info.iterrows()])
-        
-                
-                # Display the HTML in Streamlit
-        rec_msg = html_code.format(table_header, table_body)
-
-        # Display the HTML table in Streamlit
-        # st.markdown(html_table, unsafe_allow_html=True)
-
+                    # Format the HTML code with dynamic content
+            table_header = "".join(['<th>{}</th>'.format(col) for col in rec_info.columns])
+            table_body = "".join(['<tr>{}</tr>'.format("".join(['<td>{}</td>'.format(row[col]) for col in rec_info.columns])) for _, row in rec_info.iterrows()])
             
-        # add a button to preview data before submission
-        if st.button('Preview Client Renewal Information'):
-            #iterate the plan_data and extract the information for each plans for the selected client
-            #display the information for review
-
-            st.markdown(plan_html_table, unsafe_allow_html=True)
-            
-            st.markdown(html_table, unsafe_allow_html=True)
-      
-            st.success("Kindly Review the Client Information above, confirm it's accuracy and click on the Submit button below")
-        #add a button to submit the information and execute the write of the data to the DB table
-        if st.button('Submit'):
-            cursor = conn.cursor()
-            try:
-                #iterate the plan_data list and write the information for each plan as below
-                # to the table created on the DB.
-                for plan in repricing_metrics:
-                    cursor.execute('insert into [dbo].[renewal_portal_plan_data]\
-                                (PlanID, PolicyNo, client, plan_name, category, individual_lives, individual_premium, family_lives,\
-                                family_premium, total_lives, upsell_last_3yrs, upsell_year, upsell_note, repriced_last_3yrs, year_repriced,\
-                                repriced_percent, i_BaseRate, f_BaseRate, i_CirculationRate, f_CirculationRate,\
-                                repricing_score, rec_reprice_percent, rec_renewal_ipremium, rec_renewal_fpremium, date_submitted)\
-                                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-                                (plan['plan_id'], policyno, client, plan['plan_name'],plan['category'], plan['i_num_lives'], plan['i_premium_paid'], 
-                                plan['f_num_lives'], plan['f_premium_paid'], plan['total_lives'], plan['upsell'], plan['upsell_yr'], plan['upsell_notes'],
-                                plan['repriced'], plan['repriced_yr'], plan['repriced_percent'],
-                                None if pd.isna(plan['iBaseRate']) else float(plan['iBaseRate']), None if pd.isna(plan['fBaseRate']) else float(plan['fBaseRate']),
-                                None if pd.isna(plan['iCirculationRate']) else float(plan['iCirculationRate']),
-                                None if pd.isna(plan['fCirculationRate']) else float(plan['fCirculationRate']),
-                                plan['score'], plan['recommendation'], plan['new_ipremium'], plan['new_fpremium'], dt.datetime.now())
-                                )
                     
-                #insert all the other required information relating to the selected client into the 
-                #created client table on the DB
-                cursor.execute("insert into [dbo].[renewal_portal_client_data]\
-                            (PolicyNo, client, total_num_of_plans, total_lives_client_mgr, total_calc_premium, total_actual_premium, client_mlr,\
-                            total_pa_value, total_medical_cost, total_revenue, toshfa_active_lives, total_enrollees_accessed_care, num_of_providers, \
-                            top_3_providers_accessed, pop_distribution, plan_utilization, gender_utilization, member_type_utilization, client_onboarding_yr,\
-                            shared_portfolio, competitor_HMO, policy_start_date, policy_end_date, AdditionalNotes, client_manager, date_submitted)\
-                                VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
-                            (policyno, client, int(num_plans), int(total_lives), int(total_calc_premium), int(total_actual_premium),
-                            None if pd.isna(client_mlr) else float(client_mlr), None if pd.isna(client_pa_value) else float(client_pa_value),
-                            None if pd.isna(client_medicalcost) else float(client_medicalcost), None if pd.isna(client_revenue) else float(client_revenue),
-                            total_active_lives, client_pa_count, client_num_of_providers_used, formatted_providers, plan_population, plan_utilization, gender_utilization,
-                            member_utilization, int(year_joined), shared_portfolio, competitor, start_date, end_date, notes, client_mgr, dt.datetime.now())
-                            )
-                #commit to insert the data into respective tables
-                conn.commit()
-                #display the text after the successful writing of the data to the DB.
-                st.success(f'All {client} Renewal Information Submitted Sucessfully')
+                    # Display the HTML in Streamlit
+            rec_msg = html_code.format(table_header, table_body)
 
-                # cc_email_list = ['bi_dataanalytics@avonhealthcare.com']
-                cc_email_list = ['internalauditriskandcontroldept@avonhealthcare.com','idowu.sanni@avonhealthcare.com',
-                                 'bi_dataanalytics@avonhealthcare.com', client_mgr_email]
-                renewal_year = dt.datetime.now().year
-                subject = f'{renewal_year} RENEWAL NOTIFICATION for {client}'
-                # Create a table (HTML format) with some sample data
-                msg_befor_table = f'''
-                Dear Atinuke,<br><br>
-                Trust this mail finds you well.<br><br>
-                This is to notify you that {client}'s policy is due for renewal in <b>{policy_end_month}</b> and their renewal process has been initiated.<br><br>
+            # Display the HTML table in Streamlit
+            # st.markdown(html_table, unsafe_allow_html=True)
 
-                The tables below details their plan information, a summary of their utilization within their policy year and the recommendation for renewal.
-                '''
+            
+            # add a button to preview data before submission
+            if st.button('Preview Client Renewal Information'):
+                #iterate the plan_data and extract the information for each plans for the selected client
+                #display the information for review
 
-                msg_after_tables = f"""
-                Kindly review the information and the recommendation by the portal and provide your feedback to enable us start renewal negotiation with the client.
-                I will be available to provide additional information about the client if required.<br><br>
-                Regards.<br><br>
-                <span style="font-size: 20;"><b>{client_mgr}</b></span>
-                """
+                st.markdown(plan_html_table, unsafe_allow_html=True)
                 
-
-                final_message = msg_befor_table + plan_html_table + html_table + rec_msg + msg_after_tables
-
-                myemail = 'noreply@avonhealthcare.com'
-                # password = st.secrets['emailpassword']
-                password = os.environ.get('emailpassword')
-                recipient_email = 'atinuke.kolade@avonhealthcare.com'
-                email = [recipient_email]
-
+                st.markdown(html_table, unsafe_allow_html=True)
+        
+                st.success("Kindly Review the Client Information above, confirm it's accuracy and click on the Submit button below")
+            #add a button to submit the information and execute the write of the data to the DB table
+            if st.button('Submit'):
+                cursor = conn.cursor()
                 try:
-                    server = smtplib.SMTP('smtp.office365.com', 587)
-                    server.starttls()
+                    #iterate the plan_data list and write the information for each plan as below
+                    # to the table created on the DB.
+                    for plan in repricing_metrics:
+                        cursor.execute('insert into [dbo].[renewal_portal_plan_data]\
+                                    (PlanID, PolicyNo, client, plan_name, category, individual_lives, individual_premium, family_lives,\
+                                    family_premium, total_lives, upsell_last_3yrs, upsell_year, upsell_note, repriced_last_3yrs, year_repriced,\
+                                    repriced_percent, i_BaseRate, f_BaseRate, i_CirculationRate, f_CirculationRate,\
+                                    repricing_score, rec_reprice_percent, rec_renewal_ipremium, rec_renewal_fpremium, date_submitted)\
+                                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+                                    (plan['plan_id'], policyno, client, plan['plan_name'],plan['category'], plan['i_num_lives'], plan['i_premium_paid'], 
+                                    plan['f_num_lives'], plan['f_premium_paid'], plan['total_lives'], plan['upsell'], plan['upsell_yr'], plan['upsell_notes'],
+                                    plan['repriced'], plan['repriced_yr'], plan['repriced_percent'],
+                                    None if pd.isna(plan['iBaseRate']) else float(plan['iBaseRate']), None if pd.isna(plan['fBaseRate']) else float(plan['fBaseRate']),
+                                    None if pd.isna(plan['iCirculationRate']) else float(plan['iCirculationRate']),
+                                    None if pd.isna(plan['fCirculationRate']) else float(plan['fCirculationRate']),
+                                    plan['score'], plan['recommendation'], plan['new_ipremium'], plan['new_fpremium'], dt.datetime.now())
+                                    )
+                        
+                    #insert all the other required information relating to the selected client into the 
+                    #created client table on the DB
+                    cursor.execute("insert into [dbo].[renewal_portal_client_data]\
+                                (PolicyNo, client, total_num_of_plans, total_lives_client_mgr, total_calc_premium, total_actual_premium, client_mlr,\
+                                total_pa_value, total_medical_cost, total_revenue, toshfa_active_lives, total_enrollees_accessed_care, num_of_providers, \
+                                top_3_providers_accessed, pop_distribution, plan_utilization, gender_utilization, member_type_utilization, client_onboarding_yr,\
+                                shared_portfolio, competitor_HMO, policy_start_date, policy_end_date, AdditionalNotes, client_manager, date_submitted)\
+                                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                                (policyno, client, int(num_plans), int(total_lives), int(total_calc_premium), int(total_actual_premium),
+                                None if pd.isna(client_mlr) else float(client_mlr), None if pd.isna(client_pa_value) else float(client_pa_value),
+                                None if pd.isna(client_medicalcost) else float(client_medicalcost), None if pd.isna(client_revenue) else float(client_revenue),
+                                total_active_lives, client_pa_count, client_num_of_providers_used, formatted_providers, plan_population, plan_utilization, gender_utilization,
+                                member_utilization, int(year_joined), shared_portfolio, competitor, start_date, end_date, notes, client_mgr, dt.datetime.now())
+                                )
+                    #commit to insert the data into respective tables
+                    conn.commit()
+                    #display the text after the successful writing of the data to the DB.
+                    st.success(f'All {client} Renewal Information Submitted Sucessfully')
 
-                    #login to outlook account
-                    server.login(myemail, password)
+                    # cc_email_list = ['bi_dataanalytics@avonhealthcare.com']
+                    cc_email_list = ['internalauditriskandcontroldept@avonhealthcare.com','idowu.sanni@avonhealthcare.com',
+                                    'bi_dataanalytics@avonhealthcare.com', client_mgr_email]
+                    renewal_year = dt.datetime.now().year
+                    subject = f'{renewal_year} RENEWAL NOTIFICATION for {client}'
+                    # Create a table (HTML format) with some sample data
+                    msg_befor_table = f'''
+                    Dear Atinuke,<br><br>
+                    Trust this mail finds you well.<br><br>
+                    This is to notify you that {client}'s policy is due for renewal in <b>{policy_end_month}</b> and their renewal process has been initiated.<br><br>
 
-                    #create a MIMETesxt object for the email message
-                    msg = MIMEMultipart()
-                    msg['From'] = 'AVON HMO Client Services'
-                    msg['To'] = recipient_email
-                    msg['Cc'] = ', '.join(cc_email_list)
-                    msg['Subject'] = subject
-                    msg.attach(MIMEText(final_message, 'html'))
+                    The tables below details their plan information, a summary of their utilization within their policy year and the recommendation for renewal.
+                    '''
 
-                    all_email = email + cc_email_list
-                    server.sendmail(myemail, all_email, msg.as_string())
-                    server.quit()
+                    msg_after_tables = f"""
+                    Kindly review the information and the recommendation by the portal and provide your feedback to enable us start renewal negotiation with the client.
+                    I will be available to provide additional information about the client if required.<br><br>
+                    Regards.<br><br>
+                    <span style="font-size: 20;"><b>{client_mgr}</b></span>
+                    """
+                    
 
-                    st.success(f"{client}'s Renewal Process has been successfully initiated and Notification Email has been sent to all stakeholders.\n\n\
-                                You are advised to follow-up to ensure the renewal process is concluded in due time")
+                    final_message = msg_befor_table + plan_html_table + html_table + rec_msg + msg_after_tables
+
+                    myemail = 'noreply@avonhealthcare.com'
+                    # password = st.secrets['emailpassword']
+                    password = os.environ.get('emailpassword')
+                    recipient_email = 'atinuke.kolade@avonhealthcare.com'
+                    email = [recipient_email]
+
+                    try:
+                        server = smtplib.SMTP('smtp.office365.com', 587)
+                        server.starttls()
+
+                        #login to outlook account
+                        server.login(myemail, password)
+
+                        #create a MIMETesxt object for the email message
+                        msg = MIMEMultipart()
+                        msg['From'] = 'AVON HMO Client Services'
+                        msg['To'] = recipient_email
+                        msg['Cc'] = ', '.join(cc_email_list)
+                        msg['Subject'] = subject
+                        msg.attach(MIMEText(final_message, 'html'))
+
+                        all_email = email + cc_email_list
+                        server.sendmail(myemail, all_email, msg.as_string())
+                        server.quit()
+
+                        st.success(f"{client}'s Renewal Process has been successfully initiated and Notification Email has been sent to all stakeholders.\n\n\
+                                    You are advised to follow-up to ensure the renewal process is concluded in due time")
+                    except Exception as e:
+                        st.error(f'An error occurred: {e}')
+                    #call the function below to clear the plan_data list for a new entry
+                    reset_data()
                 except Exception as e:
-                    st.error(f'An error occurred: {e}')
-                #call the function below to clear the plan_data list for a new entry
-                reset_data()
-            except Exception as e:
-                st.error(f"An error occurred: {str(e)}")
-            finally:
-                cursor.close()
-                conn.close()
+                    st.error(f"An error occurred: {str(e)}")
+                finally:
+                    cursor.close()
+                    conn.close()
 
                 
             #block of codes to be executed if no client is selected.
