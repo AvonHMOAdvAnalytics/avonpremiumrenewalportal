@@ -792,8 +792,7 @@ if client is not None and client_mgr is not None:
                     st.success(f'All {client} Renewal Information Submitted Sucessfully')
 
                     # cc_email_list = ['bi_dataanalytics@avonhealthcare.com']
-                    cc_email_list = ['internalauditriskandcontroldept@avonhealthcare.com','idowu.sanni@avonhealthcare.com',
-                                    'bi_dataanalytics@avonhealthcare.com', client_mgr_email]
+                    cc_email_list = ['bi_dataanalytics@avonhealthcare.com', client_mgr_email]
                     renewal_year = dt.datetime.now().year
                     subject = f'{renewal_year} RENEWAL NOTIFICATION for {client}'
                     # Create a table (HTML format) with some sample data
@@ -818,7 +817,7 @@ if client is not None and client_mgr is not None:
                     myemail = 'noreply@avonhealthcare.com'
                     # password = st.secrets['emailpassword']
                     password = os.environ.get('emailpassword')
-                    recipient_email = 'atinuke.kolade@avonhealthcare.com'
+                    recipient_email = 'idowu.sanni@avonhealthcare.com'
                     email = [recipient_email]
 
                     try:
