@@ -2,9 +2,14 @@ import streamlit as st
 import pandas as pd
 import pyodbc
 import datetime as dt
+from PIL import Image
 import os
  
 st.set_page_config(page_title='Client Renewal', layout='wide', initial_sidebar_state='expanded')
+
+#add a image header to the page
+image = Image.open('RenewalPortal.png')
+st.image(image, use_column_width=True)
  
 # # Database connection
 # try:
@@ -123,7 +128,7 @@ if st.session_state['authentication_status']:
 else:
     # Display the login page
     st.sidebar.title("Home Page")
-    st.sidebar.write("Welcome to the Portal!")
+    st.sidebar.write("Welcome to the Client Renewal Portal!")
     username = st.text_input("Username")
     password = st.text_input("Password", type="password")
     
