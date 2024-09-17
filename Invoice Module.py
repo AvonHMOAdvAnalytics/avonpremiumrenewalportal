@@ -16,8 +16,8 @@ import os
 # st.set_page_config(page_title= 'Invoice Module',layout='wide', initial_sidebar_state='expanded')
 
 #add a image header to the page
-image = Im.open('RenewalPortal.png')
-st.image(image, use_column_width=True)
+# image = Im.open('RenewalPortal.png')
+# st.image(image, use_column_width=True)
 
 #write the queries to pull data from the DB
 query10 = 'select distinct a.PolicyNo, b.PolicyName, a.FromDate, a.ToDate, a.ClassName\
@@ -30,35 +30,35 @@ query11 = 'select * from tbl_renewal_portal_invoice_module_client_data a\
 query12 = 'select * from tbl_renewal_portal_invoice_module_plan_data a\
         where invoiceno = (select max(invoiceno) from tbl_renewal_portal_invoice_module_plan_data b where a.Client = b.Client)'
 
-# #define the connection for the DBs
-# conn = pyodbc.connect(
-#         'DRIVER={ODBC Driver 17 for SQL Server};SERVER='
-#         +st.secrets['server']
-#         +';DATABASE='
-#         +st.secrets['database']
-#         +';UID='
-#         +st.secrets['username']
-#         +';PWD='
-#         +st.secrets['password']
-#         ) 
-
-# assign the DB credentials to variables
-server = os.environ.get('server_name')
-database = os.environ.get('db_name')
-username = os.environ.get('db_username')
-password = os.environ.get('db_password')
-
-# define the DB connection
+#define the connection for the DBs
 conn = pyodbc.connect(
         'DRIVER={ODBC Driver 17 for SQL Server};SERVER='
-        + server
+        +st.secrets['server']
         +';DATABASE='
-        + database
+        +st.secrets['database']
         +';UID='
-        + username
+        +st.secrets['username']
         +';PWD='
-        + password
-        )
+        +st.secrets['password']
+        ) 
+
+# # assign the DB credentials to variables
+# server = os.environ.get('server_name')
+# database = os.environ.get('db_name')
+# username = os.environ.get('db_username')
+# password = os.environ.get('db_password')
+
+# # define the DB connection
+# conn = pyodbc.connect(
+#         'DRIVER={ODBC Driver 17 for SQL Server};SERVER='
+#         + server
+#         +';DATABASE='
+#         + database
+#         +';UID='
+#         + username
+#         +';PWD='
+#         + password
+#         )
 
 #write a function to read the data from the DBs
 @st.cache_data(ttl = dt.timedelta(hours=24))

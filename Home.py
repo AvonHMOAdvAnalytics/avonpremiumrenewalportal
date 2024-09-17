@@ -11,41 +11,41 @@ st.set_page_config(page_title='Client Renewal', layout='wide', initial_sidebar_s
 image = Image.open('RenewalPortal.png')
 st.image(image, use_column_width=True)
  
-# # Database connection
-# try:
-#     conn = pyodbc.connect(
-#         'DRIVER={ODBC Driver 17 for SQL Server};SERVER='
-#         + st.secrets['server']
-#         + ';DATABASE='
-#         + st.secrets['database']
-#         + ';UID='
-#         + st.secrets['username']
-#         + ';PWD='
-#         + st.secrets['password']
-#     )
-# except pyodbc.Error as ex:
-#     st.error(f"Database connection failed: {ex}")
-
-# assign the DB credentials to variables
-server = os.environ.get('server_name')
-database = os.environ.get('db_name')
-username = os.environ.get('db_username')
-password = os.environ.get('db_password')
-
-# define the DB connection
+# Database connection
 try:
     conn = pyodbc.connect(
-            'DRIVER={ODBC Driver 17 for SQL Server};SERVER='
-            + server
-            +';DATABASE='
-            + database
-            +';UID='
-            + username
-            +';PWD='
-            + password
-            )
+        'DRIVER={ODBC Driver 17 for SQL Server};SERVER='
+        + st.secrets['server']
+        + ';DATABASE='
+        + st.secrets['database']
+        + ';UID='
+        + st.secrets['username']
+        + ';PWD='
+        + st.secrets['password']
+    )
 except pyodbc.Error as ex:
     st.error(f"Database connection failed: {ex}")
+
+# assign the DB credentials to variables
+# server = os.environ.get('server_name')
+# database = os.environ.get('db_name')
+# username = os.environ.get('db_username')
+# password = os.environ.get('db_password')
+
+# # define the DB connection
+# try:
+#     conn = pyodbc.connect(
+#             'DRIVER={ODBC Driver 17 for SQL Server};SERVER='
+#             + server
+#             +';DATABASE='
+#             + database
+#             +';UID='
+#             + username
+#             +';PWD='
+#             + password
+#             )
+# except pyodbc.Error as ex:
+#     st.error(f"Database connection failed: {ex}")
 
 def login_user(username,password):
     with conn.cursor() as cursor:

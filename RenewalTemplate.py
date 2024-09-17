@@ -15,8 +15,8 @@ import os
 # st.set_page_config(page_title= 'Premium Calculator',layout='wide', initial_sidebar_state='expanded')
 
 #add a image header to the page
-image = Image.open('RenewalPortal.png')
-st.image(image, use_column_width=True)
+# image = Image.open('RenewalPortal.png')
+# st.image(image, use_column_width=True)
 
 #write the queries to pull data from the DB
 query = 'select * from tblEnrolleePremium'
@@ -30,35 +30,35 @@ query4 = 'select * from tbl_renewal_portal_template_module_client_data a\
             where date_submitted = (select max(date_submitted) from tbl_renewal_portal_template_module_client_data b where a.client = b.client)'
 
 # assign the DB credentials to variables
-server = os.environ.get('server_name')
-database = os.environ.get('db_name')
-username = os.environ.get('db_username')
-password = os.environ.get('db_password')
+# server = os.environ.get('server_name')
+# database = os.environ.get('db_name')
+# username = os.environ.get('db_username')
+# password = os.environ.get('db_password')
 
-# define the DB connection
-conn = pyodbc.connect(
-        'DRIVER={ODBC Driver 17 for SQL Server};SERVER='
-        + server
-        +';DATABASE='
-        + database
-        +';UID='
-        + username
-        +';PWD='
-        + password
-        )
-
-
-# #define the connection for the DBs
+# # define the DB connection
 # conn = pyodbc.connect(
 #         'DRIVER={ODBC Driver 17 for SQL Server};SERVER='
-#         +st.secrets['server']
+#         + server
 #         +';DATABASE='
-#         +st.secrets['database']
+#         + database
 #         +';UID='
-#         +st.secrets['username']
+#         + username
 #         +';PWD='
-#         +st.secrets['password']
-#         ) 
+#         + password
+#         )
+
+
+#define the connection for the DBs
+conn = pyodbc.connect(
+        'DRIVER={ODBC Driver 17 for SQL Server};SERVER='
+        +st.secrets['server']
+        +';DATABASE='
+        +st.secrets['database']
+        +';UID='
+        +st.secrets['username']
+        +';PWD='
+        +st.secrets['password']
+        ) 
 
 #write a function to read the data from the DBs
 @st.cache_data(ttl = dt.timedelta(hours=24))
@@ -404,7 +404,7 @@ if client is not None:
         
     else:
         st.subheader(f"Renewal Template for {client}")
-    #assign the unique plans of the selected client to a variablr
+    #assign the unique plans of the selected client to a variable
     unique_plan = active_clients.loc[active_clients['PolicyName'] == client, 'PlanType'].unique()
     #group the client data by the number of enrollees on each plane and assign to a variable.
     agg = active_clients[active_clients['PolicyName'] == client].groupby(['PlanType']).agg({'MemberNo':'nunique', 'MemberHeadNo': 'nunique'}).sort_values(by=['PlanType',"MemberNo"], ascending=False)

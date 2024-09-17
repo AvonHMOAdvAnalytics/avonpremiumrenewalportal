@@ -12,8 +12,8 @@ import os
 # st.set_page_config(page_title= 'Premium Calculator',layout='wide', initial_sidebar_state='expanded')
 
 #add a image header to the page
-image = Image.open('RenewalPortal.png')
-st.image(image, use_column_width=True)
+# image = Image.open('RenewalPortal.png')
+# st.image(image, use_column_width=True)
 
 #write the queries to pull data from the DB
 query5 = 'select distinct a.PolicyNo, b.PolicyName, a.FromDate, a.ToDate, a.ClassName\
@@ -25,35 +25,35 @@ query7 = 'select * from tbl_renewal_portal_template_module_client_data'
 query8 = 'select * from vw_tbl_final_client_mlr'
 query9 = 'select * from premium_calculator_pa_data'
 
-# #define the connection for the DBs
-# conn = pyodbc.connect(
-#         'DRIVER={ODBC Driver 17 for SQL Server};SERVER='
-#         +st.secrets['server']
-#         +';DATABASE='
-#         +st.secrets['database']
-#         +';UID='
-#         +st.secrets['username']
-#         +';PWD='
-#         +st.secrets['password']
-#         ) 
-
-# assign the DB credentials to variables
-server = os.environ.get('server_name')
-database = os.environ.get('db_name')
-username = os.environ.get('db_username')
-password = os.environ.get('db_password')
-
-# define the DB connection
+#define the connection for the DBs
 conn = pyodbc.connect(
         'DRIVER={ODBC Driver 17 for SQL Server};SERVER='
-        + server
+        +st.secrets['server']
         +';DATABASE='
-        + database
+        +st.secrets['database']
         +';UID='
-        + username
+        +st.secrets['username']
         +';PWD='
-        + password
-        )
+        +st.secrets['password']
+        ) 
+
+# # assign the DB credentials to variables
+# server = os.environ.get('server_name')
+# database = os.environ.get('db_name')
+# username = os.environ.get('db_username')
+# password = os.environ.get('db_password')
+
+# # define the DB connection
+# conn = pyodbc.connect(
+#         'DRIVER={ODBC Driver 17 for SQL Server};SERVER='
+#         + server
+#         +';DATABASE='
+#         + database
+#         +';UID='
+#         + username
+#         +';PWD='
+#         + password
+#         )
 
 
 #write a function to read the data from the DBs
