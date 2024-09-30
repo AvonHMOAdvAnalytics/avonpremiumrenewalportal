@@ -9,6 +9,8 @@ import textwrap
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+from email.mime.base import MIMEBase
+from email import encoders
 import os
 
 #set the page configuration
@@ -19,7 +21,7 @@ import os
 # st.image(image, use_column_width=True)
 
 #write the queries to pull data from the DB
-query = 'select * from tblEnrolleePremium'
+query = 'select * from vw_client_renewal_portal_active_client_data'
 query1 = 'select * from vw_tbl_final_client_mlr'
 query2 = 'select * from premium_calculator_pa_data'
 query3 = 'select * from tbl_renewal_portal_template_module_plan_data a\
@@ -30,35 +32,35 @@ query4 = 'select * from tbl_renewal_portal_template_module_client_data a\
             where date_submitted = (select max(date_submitted) from tbl_renewal_portal_template_module_client_data b where a.client = b.client)'
 
 # assign the DB credentials to variables
-# server = os.environ.get('server_name')
-# database = os.environ.get('db_name')
-# username = os.environ.get('db_username')
-# password = os.environ.get('db_password')
+server = os.environ.get('server_name')
+database = os.environ.get('db_name')
+username = os.environ.get('db_username')
+password = os.environ.get('db_password')
 
-# # define the DB connection
-# conn = pyodbc.connect(
-#         'DRIVER={ODBC Driver 17 for SQL Server};SERVER='
-#         + server
-#         +';DATABASE='
-#         + database
-#         +';UID='
-#         + username
-#         +';PWD='
-#         + password
-#         )
-
-
-#define the connection for the DBs
+# define the DB connection
 conn = pyodbc.connect(
         'DRIVER={ODBC Driver 17 for SQL Server};SERVER='
-        +st.secrets['server']
+        + server
         +';DATABASE='
-        +st.secrets['database']
+        + database
         +';UID='
-        +st.secrets['username']
+        + username
         +';PWD='
-        +st.secrets['password']
-        ) 
+        + password
+        )
+
+
+# #define the connection for the DBs
+# conn = pyodbc.connect(
+#         'DRIVER={ODBC Driver 17 for SQL Server};SERVER='
+#         +st.secrets['server']
+#         +';DATABASE='
+#         +st.secrets['database']
+#         +';UID='
+#         +st.secrets['username']
+#         +';PWD='
+#         +st.secrets['password']
+#         ) 
 
 #write a function to read the data from the DBs
 @st.cache_data(ttl = dt.timedelta(hours=24))
@@ -149,6 +151,7 @@ def generate_input_fields(client, plan_names):
         repriced = st.radio(label='Has this plan been repriced in the Last 3 Years?', key=repriced_key, index=None, options=['No', 'Yes'])
         repriced_yr = st.number_input(label=f'If {plan_name} was Repriced, Input Repriced Year',min_value=2019, max_value=dt.date.today().year, key=repriced_yr_key, value=None)
         repriced_percent = st.number_input(label=f'By what % was {plan_name} repriced?', key=repriced_percent_key, value=None)
+
         
         policyid = active_clients.loc[active_clients['PolicyName'] == client, 'PolicyNo'].values[0]
 
@@ -189,15 +192,15 @@ def assign_scores_n_recommendation(plan_data, mlr, utili,premium):
     for plan in plan_data:
         plan_utilization = extract_percentage_utilization(plan['plan_name'], utili)
         score = 5 *(plan_utilization/100)
-        if premium < 5000000:
+        if int(premium) < 5000000:
             score += 5
-        elif 5000000 <= premium < 10000000:
+        elif 5000000 <= int(premium) < 10000000:
             score += 4
-        elif 10000000 <= premium < 50000000:
+        elif 10000000 <= int(premium) < 50000000:
             score += 3
-        elif 50000000 <= premium < 100000000:
+        elif 50000000 <= int(premium) < 100000000:
             score += 2
-        elif premium > 100000000:
+        elif int(premium) > 100000000:
             score += 1
 
 
@@ -215,11 +218,11 @@ def assign_scores_n_recommendation(plan_data, mlr, utili,premium):
         if plan['upsell'] == 'No':
             if plan['repriced'] == 'No':
                 score += 12
-            elif (plan['repriced'] == 'Yes') and (plan['repriced'] < 10):
+            elif (plan['repriced'] == 'Yes') and (plan['repriced_percent'] < 10):
                 score += 8
-            elif (plan['repriced'] == 'Yes') and (10 <= plan['repriced'] < 25):
+            elif (plan['repriced'] == 'Yes') and (10 <= plan['repriced_percent'] < 25):
                 score += 6
-            elif (plan['repriced'] == 'Yes') and (plan['repriced'] >= 25):
+            elif (plan['repriced'] == 'Yes') and (plan['repriced_percent'] >= 25):
                 score += 4
         else:
             score += 2     
@@ -304,13 +307,13 @@ if client is not None:
 
     start_date = active_clients.loc[
                         active_clients['PolicyName'] == client,
-                        'FromDate'
+                        'PolicyStartDate'
                         ].dt.date.unique()
     start_date = np.min(start_date)
 
     end_date = active_clients.loc[
         active_clients['PolicyName'] == client,
-        'ToDate'
+        'PolicyEndDate'
         ].dt.date.unique()
     end_date = np.max(end_date)
 
@@ -437,6 +440,7 @@ if client is not None:
         shared_portfolio = st.radio(label='Is this a shared portfolio?',index=None, options=['No', 'Yes'])
         competitor = st.text_input(label='If Portfolio is Shared, List the HMOs we are sharing with', help='If more than one, seperate the names with comma')
         total_actual_premium = st.number_input(f'Input the actual total premium paid by {client}', value=0)
+        upsell_reprice_doc = st.file_uploader('If Client was Repriced or Upsold, Upload Evidence', accept_multiple_files=True)
         notes = st.text_area(label='Additional Notes/Remarks')
 
         #create a submit button to submit the inputted data
@@ -568,11 +572,11 @@ if client is not None:
                         <td>{f_client_revenue}</td>
                     </tr>
                     <tr>
-                        <td>Total Number of Active Lives as Inputed by Client Manager</td>
+                        <td>Total Number of Lives at Last Renewal</td>
                         <td>{total_lives}</td>
                     </tr>
                     <tr>
-                        <td>Total Number of Active Lives from TOSHFA</td>
+                        <td>Total Number of Active Lives on TOSHFA</td>
                         <td>{f_total_active_lives}</td>
                     </tr>
                     <tr>
@@ -694,7 +698,7 @@ if client is not None:
                 # cc_email_list = ['bi_dataanalytics@avonhealthcare.com']
                 cc_email_list = ['bi_dataanalytics@avonhealthcare.com', email]
                 renewal_year = dt.datetime.now().year
-                subject = f'{renewal_year} RENEWAL NOTIFICATION for {client}'
+                subject = f'TESTING!!! {renewal_year} RENEWAL NOTIFICATION for {client}'
                 # Create a table (HTML format) with some sample data
                 msg_befor_table = f'''
                 Dear IARC,<br><br>
@@ -724,8 +728,11 @@ if client is not None:
                 myemail = 'noreply@avonhealthcare.com'
                 # password = st.secrets['emailpassword']
                 password = os.environ.get('emailpassword')
-                recipient_email = 'ademola.atolagbe@avonhealthcare.com'
-                clientmgr_email = email
+                audit_email = 'internalauditriskandcontroldept@avonhealthcare.com'
+                bcc_email = 'ademola.atolagbe@avonhealthcare.com'
+            
+                recipient_1 = [audit_email,bcc_email]
+                recipient_2 = [email, bcc_email]
 
                 try:
                     server = smtplib.SMTP('smtp.office365.com', 587)
@@ -737,21 +744,30 @@ if client is not None:
                     #create a MIMETesxt object for the email message
                     msg = MIMEMultipart()
                     msg['From'] = 'AVON HMO Client Services'
-                    msg['To'] = recipient_email
-                    # msg['Cc'] = ', '.join(cc_email_list)
+                    msg['To'] = audit_email
+                    msg['Bcc'] = bcc_email
                     msg['Subject'] = subject
                     msg.attach(MIMEText(audit_message, 'html'))
 
                     msg1 = MIMEMultipart()
                     msg1['From'] = 'AVON HMO Client Services'
-                    msg1['To'] = clientmgr_email
-                    # msg['Cc'] = ', '.join(cc_email_list)
+                    msg1['To'] = email
+                    msg['Bcc'] = bcc_email
                     msg1['Subject'] = subject
                     msg1.attach(MIMEText(clientmgr_msg, 'html'))
 
+                    for file in upsell_reprice_doc:
+                        file.seek(0)
+                        file_data = file.read()
+                        part = MIMEBase('application', 'octet-stream')
+                        part.set_payload(file_data)
+                        encoders.encode_base64(part)
+                        part.add_header('Content-Disposition', f'attachment; filename={file.name}')
+                        msg.attach(part)
+
                     # all_email = email + cc_email_list
-                    server.sendmail(myemail, msg['To'].split(','), msg.as_string())
-                    server.sendmail(myemail, msg1['To'].split(','), msg1.as_string())
+                    server.sendmail(myemail, recipient_1, msg.as_string())
+                    server.sendmail(myemail, recipient_2, msg1.as_string())
                     server.quit()
 
                     st.success(f"{client}'s Renewal Process has been successfully initiated and Notification Email has been sent to all stakeholders.\n\n\

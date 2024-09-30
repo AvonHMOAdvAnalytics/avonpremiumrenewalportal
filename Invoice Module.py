@@ -10,6 +10,7 @@ from docx.enum.text import WD_PARAGRAPH_ALIGNMENT
 from docx.enum.table import WD_ALIGN_VERTICAL
 from io import BytesIO
 import re
+from azure.storage.blob import BlobServiceClient
 import os
 
 #set the page configuration
@@ -30,35 +31,35 @@ query11 = 'select * from tbl_renewal_portal_invoice_module_client_data a\
 query12 = 'select * from tbl_renewal_portal_invoice_module_plan_data a\
         where invoiceno = (select max(invoiceno) from tbl_renewal_portal_invoice_module_plan_data b where a.Client = b.Client)'
 
-#define the connection for the DBs
-conn = pyodbc.connect(
-        'DRIVER={ODBC Driver 17 for SQL Server};SERVER='
-        +st.secrets['server']
-        +';DATABASE='
-        +st.secrets['database']
-        +';UID='
-        +st.secrets['username']
-        +';PWD='
-        +st.secrets['password']
-        ) 
-
-# # assign the DB credentials to variables
-# server = os.environ.get('server_name')
-# database = os.environ.get('db_name')
-# username = os.environ.get('db_username')
-# password = os.environ.get('db_password')
-
-# # define the DB connection
+# #define the connection for the DBs
 # conn = pyodbc.connect(
 #         'DRIVER={ODBC Driver 17 for SQL Server};SERVER='
-#         + server
+#         +st.secrets['server']
 #         +';DATABASE='
-#         + database
+#         +st.secrets['database']
 #         +';UID='
-#         + username
+#         +st.secrets['username']
 #         +';PWD='
-#         + password
-#         )
+#         +st.secrets['password']
+#         ) 
+
+# assign the DB credentials to variables
+server = os.environ.get('server_name')
+database = os.environ.get('db_name')
+username = os.environ.get('db_username')
+password = os.environ.get('db_password')
+
+# define the DB connection
+conn = pyodbc.connect(
+        'DRIVER={ODBC Driver 17 for SQL Server};SERVER='
+        + server
+        +';DATABASE='
+        + database
+        +';UID='
+        + username
+        +';PWD='
+        + password
+        )
 
 #write a function to read the data from the DBs
 @st.cache_data(ttl = dt.timedelta(hours=24))
@@ -391,6 +392,14 @@ if client is not None and select_plan is not None:
         
         # Generate the invoice
         invoice = generate_invoice(inv_data, renewal_df, payment_plan)
+
+        #convert the invoice to a PDF file before downloading
+        # pdf_invoice = BytesIO()
+        # invoice.save(pdf_invoice)
+        # pdf_invoice.seek(0)
+        # pdf_invoice = pdf_invoice.getvalue()
+        # pdf_invoice = BytesIO(pdf_invoice)
+        # pdf_invoice = st.download_button(label='Generate Invoice', data=pdf_invoice, file_name=f"{client}_Invoice.pdf", mime='application/pdf')
         
         generate_inv = st.download_button(label='Generate Invoice', data=invoice, file_name=f"{client}_Invoice.docx", mime='application/vnd.openxmlformats-officedocument.wordprocessingml.document')
         # write the data to the DB
@@ -442,7 +451,17 @@ if client is not None and select_plan is not None:
                         #commit to insert the data into respective tables
                         conn.commit()
                         #display the text after the successful writing of the data to the DB.
-                        st.success(f'{client} Invoiced Data Successfully written to the DB, Check you Email for the PDF Invoice')
+                        st.success(f'{client} Invoiced Data Successfully written to the DB, Check your Download Folder for the Invoice')
+                        #save the generated invoice to a container on azure blob storage
+                        # conn_str = st.secrets['azure_conn_str']
+                        conn_str = os.environ.get('azure_conn_str')
+                        container_name = 'client-renewal-portal-invoices'
+                        blob_service_client = BlobServiceClient.from_connection_string(conn_str)
+                        #create a folder in the container with the invoice year containing a subfolder with the invoice month, client manager and client name
+                        folder_name = f'{current_date.year}/{current_date.strftime("%B")}/{name}/{client}'
+                        blob_client = blob_service_client.get_blob_client(container=container_name, blob=folder_name)
+                        blob_client.upload_blob(invoice.getvalue())
+
                 except Exception as e:
                                 st.error(f"An error occurred: {str(e)}")
                                 conn.rollback()

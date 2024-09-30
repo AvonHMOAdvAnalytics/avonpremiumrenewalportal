@@ -45,35 +45,35 @@ query15 = 'select * from tbl_renewal_portal_invoice_module_plan_data a\
 query16 = 'select * from tbl_renewal_portal_invoice_module_client_data a\
         where invoiceno = (select max(invoiceno) from tbl_renewal_portal_invoice_module_client_data b where a.Client = b.Client)'
 
-#define the connection for the DBs
-conn = pyodbc.connect(
-        'DRIVER={ODBC Driver 17 for SQL Server};SERVER='
-        +st.secrets['server']
-        +';DATABASE='
-        +st.secrets['database']
-        +';UID='
-        +st.secrets['username']
-        +';PWD='
-        +st.secrets['password']
-        ) 
-
-# # assign the DB credentials to variables
-# server = os.environ.get('server_name')
-# database = os.environ.get('db_name')
-# username = os.environ.get('db_username')
-# password = os.environ.get('db_password')
-
-# # define the DB connection
+# #define the connection for the DBs
 # conn = pyodbc.connect(
 #         'DRIVER={ODBC Driver 17 for SQL Server};SERVER='
-#         + server
+#         +st.secrets['server']
 #         +';DATABASE='
-#         + database
+#         +st.secrets['database']
 #         +';UID='
-#         + username
+#         +st.secrets['username']
 #         +';PWD='
-#         + password
-#         )
+#         +st.secrets['password']
+#         ) 
+
+# assign the DB credentials to variables
+server = os.environ.get('server_name')
+database = os.environ.get('db_name')
+username = os.environ.get('db_username')
+password = os.environ.get('db_password')
+
+# define the DB connection
+conn = pyodbc.connect(
+        'DRIVER={ODBC Driver 17 for SQL Server};SERVER='
+        + server
+        +';DATABASE='
+        + database
+        +';UID='
+        + username
+        +';PWD='
+        + password
+        )
 
 #write a function to read the data from the DBs
 @st.cache_data(ttl = dt.timedelta(hours=24))
@@ -349,7 +349,7 @@ if client is not None and recon_period is not None:
             #create a new column in selected_client_added_df to display a duration from enrollment date to the end of the policy cycle e.g. March 2021 - August 2021
             selected_client_added_df['Period'] = selected_client_added_df['Enrollmentdate'].dt.strftime('%B %Y') + ' - ' + period_end.strftime('%B %Y')
             #create a new column in selected_client_added_df to display the number of months from enrollment date to the recon_end
-            selected_client_added_df['MonthsLeftonPolicy'] = 3 - selected_client_added_df['PolicyAge@Enrollment']
+            selected_client_added_df['MonthsLeftonPolicy'] = 6 - selected_client_added_df['PolicyAge@Enrollment']
         elif recon_period == 'Third Quarter' and payment_plan == 'Annual':
             recon_start = policy_start + pd.DateOffset(months=6)
             recon_end = policy_start + pd.DateOffset(months=9)
@@ -534,86 +534,79 @@ if client is not None and recon_period is not None:
         st.subheader(f'Summary of Members Added Within {recon_period}')
         st.write(summary_added_df)
 
-    #check if the selected_client_deleted_df is not empty
+   # Define final_recon in advance to avoid undefined errors
+    final_recon = pd.DataFrame()
+
     if not selected_client_deleted_df.empty:
-        #check for members with policyage@deletion less than 6 months
+        # check for members with policyage@deletion less than 6 months
         eligible_replace = selected_client_deleted_df.loc[selected_client_deleted_df['PolicyAge@Deletion'] < 6]
-        #check if eligible_replace is not empty and display the aggregated data in a dataframe
+        
         if not eligible_replace.empty:
             st.subheader('Summary of Members Eligible for Replacement')
             summary_deleted_df = eligible_replace.groupby(['PlanType', 'PremiumType', 'PolicyAge@Deletion']).size().reset_index(name='Count')
             st.write(summary_deleted_df)
-        else:
-            st.warning('No member is eligible for replacement')
-        
-         #join the 'count' column in summary_deleted_df to the summary_added_df where the plan type are equal and where the policy age at enrollment is equal to the policy age at deletion
-        reconciled_df = summary_added_df.merge(summary_deleted_df, how='left', left_on=['PlanType', 'PremiumType', 'PolicyAge@Enrollment'], right_on=['PlanType', 'PremiumType', 'PolicyAge@Deletion'])
-        #create a new column in summary_added_df to display the number of members replaced
-        reconciled_df['No. of Replaced Members'] = reconciled_df['Count']
-        #fill the NaN values in the 'No. of Replaced Members' column with 0
-        reconciled_df['No. of Replaced Members'] = reconciled_df['No. of Replaced Members'].fillna(0)
-        #create a new column in summary_added_df to display the number of members remaining after replacement
-        reconciled_df['No. of Members Remaining'] = reconciled_df['No. of Added Enrollees'] - reconciled_df['No. of Replaced Members']
 
-        # Variable to hold the total count of matching deleted members
-        total_count = 0
+            # join the 'count' column in summary_deleted_df to the summary_added_df where the plan types are equal
+            reconciled_df = summary_added_df.merge(summary_deleted_df, how='left', left_on=['PlanType', 'PremiumType', 'PolicyAge@Enrollment'], right_on=['PlanType', 'PremiumType', 'PolicyAge@Deletion'])
+            reconciled_df['No. of Replaced Members'] = reconciled_df['Count'].fillna(0)
+            reconciled_df['No. of Members Remaining'] = reconciled_df['No. of Added Enrollees'] - reconciled_df['No. of Replaced Members']
 
-        # Iterate through each row in summary_added_df
-        for index, added_row in summary_added_df.iterrows():
-            # Extract PlanType and PolicyAge@Enrollment for the current row
-            plan_type = added_row['PlanType']
-            policy_age_enrollment = added_row['PolicyAge@Enrollment']
-            premiumtype = added_row['PremiumType']
-            
-            # Filter summary_deleted_df to find matching PlanType and where PolicyAge@Deletion is less than PolicyAge@Enrollment
-            matching_deleted = summary_deleted_df[
-                (summary_deleted_df['PlanType'] == plan_type) &
-                (summary_deleted_df['PremiumType'] == premiumtype) &
-                (summary_deleted_df['PolicyAge@Deletion'] < policy_age_enrollment)
-            ]
-            
-            # Sum the 'Count' for matching records and add to the total
-            count_sum = matching_deleted['Count'].sum()
-            total_count += count_sum
+            total_count = 0
+            for index, added_row in summary_added_df.iterrows():
+                plan_type = added_row['PlanType']
+                policy_age_enrollment = added_row['PolicyAge@Enrollment']
+                premiumtype = added_row['PremiumType']
 
-            #Subtract the total_count from the 'No. of Members Remaining' column in reconciled_df for each plan type
-            reconciled_df.loc[
-                (reconciled_df['PlanType'] == plan_type) &
-                (reconciled_df['PremiumType'] == premiumtype),
-                'No. of Members Remaining'
-            ] -= count_sum
+                matching_deleted = summary_deleted_df[
+                    (summary_deleted_df['PlanType'] == plan_type) &
+                    (summary_deleted_df['PremiumType'] == premiumtype) &
+                    (summary_deleted_df['PolicyAge@Deletion'] < policy_age_enrollment)
+                ]
+                
+                count_sum = matching_deleted['Count'].sum()
+                total_count += count_sum
 
-            #add the total_count to the 'No. of Replaced Members' column in reconciled_df for each plan type
-            reconciled_df.loc[
-                (reconciled_df['PlanType'] == plan_type) &
-                (reconciled_df['PremiumType'] == premiumtype),
-                'No. of Replaced Members'
-            ] += count_sum
+                reconciled_df.loc[
+                    (reconciled_df['PlanType'] == plan_type) &
+                    (reconciled_df['PremiumType'] == premiumtype),
+                    'No. of Members Remaining'
+                ] -= count_sum
 
-            #create a new column that displays the total premium by multiplying the 'No. of Members Remaining' column by the 'ProratePremium' column and the 'MonthsLeftonPolicy' column
+                reconciled_df.loc[
+                    (reconciled_df['PlanType'] == plan_type) &
+                    (reconciled_df['PremiumType'] == premiumtype),
+                    'No. of Replaced Members'
+                ] += count_sum
+
             reconciled_df['TotalPremium'] = reconciled_df['No. of Members Remaining'] * reconciled_df['ProratePremium'] * reconciled_df['MonthsLeftonPolicy']
 
-        #check for plantypes with No. of Members Remaining greater than 0 and display selected columns in a dataframe
-        remaining_members = reconciled_df.loc[
-            reconciled_df['No. of Members Remaining'] > 0,
-            ['PlanType', 'PremiumType', 'MonthsLeftonPolicy', 'No. of Added Enrollees', 'No. of Replaced Members', 'No. of Members Remaining', 'ProratePremium', 'Period', 'TotalPremium']
+            remaining_members = reconciled_df.loc[
+                reconciled_df['No. of Members Remaining'] > 0,
+                ['PlanType', 'PremiumType', 'MonthsLeftonPolicy', 'No. of Added Enrollees', 'No. of Replaced Members', 'No. of Members Remaining', 'ProratePremium', 'Period', 'TotalPremium']
             ]
-        final_recon = remaining_members[['PlanType', 'PremiumType', 'MonthsLeftonPolicy', 'No. of Added Enrollees', 'No. of Replaced Members', 'No. of Members Remaining', 'ProratePremium', 'Period', 'TotalPremium']].copy()
-        
 
-    elif selected_client_deleted_df.empty:
+            final_recon = remaining_members.copy()
+        else:
+            # If no eligible members for replacement, fall back to the default case
+            final_recon = summary_added_df[['PlanType', 'PremiumType', 'MonthsLeftonPolicy', 'No. of Added Enrollees', 'ProratePremium', 'Period']].copy()
+            final_recon['No. of Replaced Members'] = 0
+            final_recon['No. of Members Remaining'] = final_recon['No. of Added Enrollees']
+            final_recon['TotalPremium'] = final_recon['No. of Members Remaining'] * final_recon['ProratePremium'] * final_recon['MonthsLeftonPolicy']
+    else:
         st.warning(f"No members deleted within {recon_period}")
         final_recon = summary_added_df[['PlanType', 'PremiumType', 'MonthsLeftonPolicy', 'No. of Added Enrollees', 'ProratePremium', 'Period']].copy()
         final_recon['No. of Replaced Members'] = 0
         final_recon['No. of Members Remaining'] = final_recon['No. of Added Enrollees']
         final_recon['TotalPremium'] = final_recon['No. of Members Remaining'] * final_recon['ProratePremium'] * final_recon['MonthsLeftonPolicy']
-    
+
+    # Final summary
     total_premium = final_recon['TotalPremium'].sum()
     total_invoiced_enrollees = final_recon['No. of Members Remaining'].sum()
     total_replaced_enrollees = final_recon['No. of Replaced Members'].sum()
-    
+
     st.subheader('Final Reconciliation Summary for Additional Invoice')
     st.write(final_recon)
+
 
     #Use the Recon_Invoice_Template.docx to generate an additional invoice based on the final reconciliation summary
     invoice_data = {
@@ -625,7 +618,7 @@ if client is not None and recon_period is not None:
         'InvState': invoiced_clients.loc[invoiced_clients['client'] == client, 'state'].values[0],
         'InvQuarter': recon_period,
     }
-    
+
     invoice = generate_invoice(invoice_data, final_recon)
         
     generate = st.download_button(label='Generate Invoice', data=invoice, file_name=f"{client}_Invoice.docx", mime='application/vnd.openxmlformats-officedocument.wordprocessingml.document')
