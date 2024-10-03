@@ -5,6 +5,7 @@ import pandas as pd
 import numpy as np
 import datetime as dt
 from PIL import Image
+from dateutil.relativedelta import relativedelta
 import textwrap
 import smtplib
 from email.mime.text import MIMEText
@@ -316,6 +317,7 @@ if client is not None:
         'PolicyEndDate'
         ].dt.date.unique()
     end_date = np.max(end_date)
+    end_date = end_date + relativedelta(months=1)
 
     # Extract the full month name
     policy_end_month = end_date.strftime('%B')
@@ -695,10 +697,9 @@ if client is not None:
                 #display the text after the successful writing of the data to the DB.
                 st.success(f'All {client} Renewal Information Submitted Sucessfully')
 
-                # cc_email_list = ['bi_dataanalytics@avonhealthcare.com']
-                cc_email_list = ['bi_dataanalytics@avonhealthcare.com', email]
+                # cc_email_list = ['bi_dataanalytics@avonhealthcare.com', email]
                 renewal_year = dt.datetime.now().year
-                subject = f'TESTING!!! {renewal_year} RENEWAL NOTIFICATION for {client}'
+                subject = f'{renewal_year} RENEWAL NOTIFICATION for {client}'
                 # Create a table (HTML format) with some sample data
                 msg_befor_table = f'''
                 Dear IARC,<br><br>
@@ -730,8 +731,9 @@ if client is not None:
                 password = os.environ.get('emailpassword')
                 audit_email = 'internalauditriskandcontroldept@avonhealthcare.com'
                 bcc_email = 'ademola.atolagbe@avonhealthcare.com'
+                cc_email = 'atinuke.kolade@avonhealthcare.com'
             
-                recipient_1 = [audit_email,bcc_email]
+                recipient_1 = [audit_email, cc_email, bcc_email]
                 recipient_2 = [email, bcc_email]
 
                 try:
@@ -745,6 +747,7 @@ if client is not None:
                     msg = MIMEMultipart()
                     msg['From'] = 'AVON HMO Client Services'
                     msg['To'] = audit_email
+                    msg['Cc'] = cc_email
                     msg['Bcc'] = bcc_email
                     msg['Subject'] = subject
                     msg.attach(MIMEText(audit_message, 'html'))
