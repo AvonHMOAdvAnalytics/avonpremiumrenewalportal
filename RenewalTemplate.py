@@ -192,7 +192,10 @@ def assign_scores_n_recommendation(plan_data, mlr, utili,premium):
     recommendations = []
     for plan in plan_data:
         plan_utilization = extract_percentage_utilization(plan['plan_name'], utili)
-        score = 5 *(plan_utilization/100)
+        if plan_utilization is not None:
+            score = 5 *(plan_utilization/100)
+        else:
+            score = 0
         if int(premium) < 5000000:
             score += 5
         elif 5000000 <= int(premium) < 10000000:
@@ -312,12 +315,14 @@ if client is not None:
                         ].dt.date.unique()
     start_date = np.min(start_date)
 
+
     end_date = active_clients.loc[
         active_clients['PolicyName'] == client,
         'PolicyEndDate'
         ].dt.date.unique()
     end_date = np.max(end_date)
     end_date = end_date + relativedelta(months=1)
+
 
     # Extract the full month name
     policy_end_month = end_date.strftime('%B')
@@ -338,6 +343,7 @@ if client is not None:
         client_revenue = None
         client_medicalcost = None
 
+
     if client_revenue is not None and client_medicalcost is not None:
                 client_mlr = round((client_medicalcost / client_revenue) * 100, 2)
                 f_client_revenue = '#' + '{:,}'.format(client_revenue)
@@ -347,6 +353,7 @@ if client is not None:
         f_client_revenue = None
         f_client_medicalcost = None
         client_mlr = None
+
     #extract the selected client PA utilization within its policy period from the PA data and assign to a variable
     client_pa_data = pa_data.loc[
         (pa_data['PolicyNo'] == policyno) &
@@ -363,6 +370,7 @@ if client is not None:
         active_clients['PolicyNo'] == policyno,
         'MemberNo'
     ].nunique()
+
 
     client_active_member_df = active_clients[active_clients['PolicyNo'] == policyno]
     #use the function above to calculate the percentage utilization based on gender, membertype, plan and benefits and assign to variables
@@ -452,6 +460,7 @@ if client is not None:
             repricing_metrics = assign_scores_n_recommendation(plan_data,client_mlr,plan_utilization,total_actual_premium)
 
             display_info_df = pd.DataFrame(repricing_metrics)
+
 
             if not display_info_df.empty:
                 display_info = display_info_df[['plan_name', 'category', 'i_num_lives', 'f_num_lives', 'i_premium_paid', 'f_premium_paid',
@@ -731,7 +740,7 @@ if client is not None:
                 password = os.environ.get('emailpassword')
                 audit_email = 'internalauditriskandcontroldept@avonhealthcare.com'
                 bcc_email = 'ademola.atolagbe@avonhealthcare.com'
-                cc_email = 'atinuke.kolade@avonhealthcare.com'
+                cc_email = 'ajibola.bakare@avonhealthcare.com'
             
                 recipient_1 = [audit_email, cc_email, bcc_email]
                 recipient_2 = [email, bcc_email]

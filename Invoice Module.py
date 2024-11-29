@@ -23,7 +23,7 @@ import os
 #write the queries to pull data from the DB
 query10 = 'select distinct a.PolicyNo, b.PolicyName, a.FromDate, a.ToDate, a.ClassName\
         from tblClassMaster a\
-        join tblEnrolleePremium b on a.PolicyNo = b.PolicyNo\
+        join tbl_Enrollee_Premium b on a.PolicyNo = b.PolicyNo\
         where convert(date,a.ToDate) >= convert(date, getdate())'
 query11 = 'select * from tbl_renewal_portal_invoice_module_client_data a\
                 where invoiceno = (select max(invoiceno) from tbl_renewal_portal_invoice_module_client_data b where a.Client = b.Client)'
