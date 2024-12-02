@@ -13,7 +13,7 @@ import re
 from azure.storage.blob import BlobServiceClient
 import os
 
-#set the page configuration
+#set the page configuration as shown
 # st.set_page_config(page_title= 'Invoice Module',layout='wide', initial_sidebar_state='expanded')
 
 #add a image header to the page
