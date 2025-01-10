@@ -50,7 +50,6 @@ conn = pyodbc.connect(
         + password
         )
 
-
 # #define the connection for the DBs
 # conn = pyodbc.connect(
 #         'DRIVER={ODBC Driver 17 for SQL Server};SERVER='
@@ -85,6 +84,9 @@ pa_data['PAIssueDate'] = pd.to_datetime(pa_data['PAIssueDate']).dt.date
 
 # client_mlr['TxDate'] = pd.to_datetime(client_mlr['TxDate']).dt.date
 client_mlr['PolicyNo'] = client_mlr['PolicyNo'].astype(str)
+columns_to_convert = ['PREMIUM', 'CLAIMS', 'CAPITATION', 'ADDITIONAL_PA', 'TOTAL_MEDICAL', 'MLR']
+for col in columns_to_convert:
+    client_mlr[col] = pd.to_numeric(client_mlr[col], errors='coerce').fillna(0)
 
 active_clients[cols_to_convert] = active_clients[cols_to_convert].astype(int).astype(str)
 
@@ -342,7 +344,6 @@ if client is not None:
     else:
         client_revenue = None
         client_medicalcost = None
-
 
     if client_revenue is not None and client_medicalcost is not None:
                 client_mlr = round((client_medicalcost / client_revenue) * 100, 2)
