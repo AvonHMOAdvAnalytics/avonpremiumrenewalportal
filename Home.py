@@ -88,6 +88,8 @@ if st.session_state['authentication_status']:
     st.sidebar.title("Navigation")
     if st.session_state['department'] == 'Retention and Growth':
         choice = create_home_widgets(["Renewal Template", "Invoice Module","Reconcillation Module"])
+    elif st.session_state['department'] == 'Customer Experience':
+        choice = create_home_widgets(["Renewal Template", "Invoice Module","Reconcillation Module"])
     elif st.session_state['department'] == 'Internal Audit':
         choice = create_home_widgets(['Premium Calculator'])
     elif st.session_state['department'] == 'BI and Data Analytics':

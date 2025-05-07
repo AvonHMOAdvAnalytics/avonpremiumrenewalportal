@@ -84,6 +84,12 @@ select_plan = st.sidebar.multiselect('Select Active Plans', unique_plan)
 
 policy_period = st.sidebar.date_input(label='Policy Start Date')
 
+#generate policy end date based on the policy start date
+policy_start_date = pd.to_datetime(policy_period)
+policy_start_year = policy_start_date.year
+policy_end_date = policy_start_date + pd.DateOffset(years=1) - pd.DateOffset(days=1)
+policy_end_year = policy_end_date.year
+
 payment_plan = st.sidebar.selectbox(label='Select Client Payment Frequency', options=['Annual', 'Bi-Annual', 'Tri-Annual', 'Quarterly'])
 if payment_plan == 'Quarterly':
     payment_period = st.sidebar.selectbox(label='Select Payment Period', options=['1st Quarter', '2nd Quarter', '3rd Quarter', '4th Quarter'])
@@ -336,10 +342,10 @@ def generate_invoice(inv_data, table_data, payment_plan):
 
 if client is not None and select_plan is not None:
     #get the policy start and end dates
-    policy_start_date = pd.to_datetime(active_clients.loc[active_clients['PolicyName'] == client, 'FromDate'].values[0])
-    policy_start_year = policy_start_date.year
-    policy_end_date = pd.to_datetime(active_clients.loc[active_clients['PolicyName'] == client, 'ToDate'].values[0])
-    policy_end_year = policy_end_date.year
+    # policy_start_date = pd.to_datetime(active_clients.loc[active_clients['PolicyName'] == client, 'FromDate'].values[0])
+    # policy_start_year = policy_start_date.year
+    # policy_end_date = pd.to_datetime(active_clients.loc[active_clients['PolicyName'] == client, 'ToDate'].values[0])
+    # policy_end_year = policy_end_date.year
     policyno = str(active_clients.loc[active_clients['PolicyName'] == client, 'PolicyNo'].values[0])
 
     #use st.form to generate the input fields
@@ -449,8 +455,8 @@ if client is not None and select_plan is not None:
                                             )
                             )                
                     cursor.execute('INSERT INTO tbl_renewal_portal_invoice_module_client_data\
-                                    (invoiceno, policyno,client,active_plans,total_lives,total_premium,nhis_fee,grand_total,contact_person_title,address,state,recipient_email,submitted_date,clientmgr,clientmgremail,PaymentPeriod,PaymentPlan,InvPeriod)\
-                                    VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
+                                    (invoiceno, policyno,client,active_plans,total_lives,total_premium,nhis_fee,grand_total,contact_person_title,address,state,recipient_email,submitted_date,clientmgr,clientmgremail,PaymentPeriod,PaymentPlan,InvPeriod,policy_start_date,policy_end_date)\
+                                    VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
                                     (generate_invoice_number(),
                                     policyno,
                                     client,
@@ -468,7 +474,9 @@ if client is not None and select_plan is not None:
                                     email,
                                     generate_periods(policy_period),
                                     payment_plan,
-                                    payment_period
+                                    payment_period,
+                                    policy_start_date,
+                                    policy_end_date
                                     )
                     )
 
