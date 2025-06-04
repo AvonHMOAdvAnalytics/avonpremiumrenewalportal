@@ -489,7 +489,7 @@ def notify_finance_team(client, policyno, name):
     myemail = 'noreply@avonhealthcare.com'
     password = os.environ.get('emailpassword')
     excel_path = r"https://avonhealthcareltd.sharepoint.com/:x:/r/sites/BIAnalytics/Shared%20Documents/Finance/R%26G%20Local%20Client%20Renewal%20MLR.xlsx?d=wed5aa667c7b84962a19572e3822534df&csf=1&web=1&e=bxuv60"
-    subject = f"Testing!!!!MLR Update Required for Client: {client} (Policy No: {policyno})"
+    subject = f"MLR Update Required for Client: {client} (Policy No: {policyno})"
     body = f"""
     Dear Olagoke,<br><br>
     This is to notify you that the MLR for the following client is not updated on the Renewal Portal:<br><br>
@@ -682,7 +682,7 @@ if client is not None:
             year_joined = st.number_input(label='Client Onboarding Year',min_value=2013, max_value=dt.date.today().year, value=existing_data.get('client_info', {}).get('client_onboarding_yr', 2020))
             shared_portfolio = st.radio(label='Is this a shared portfolio?',options=['No', 'Yes'], index=0 if existing_data.get('client_info', {}).get('shared_portfolio', 'No') == 'No' else 1)
             competitor = st.text_input(label='If Portfolio is Shared, List the HMOs we are sharing with', help='If more than one, seperate the names with comma', value=existing_data.get('client_info', {}).get('Competitor_HMO', ''))
-            total_actual_premium = st.number_input(f'Input the actual total premium paid by {client}', value=existing_data.get('client_info', {}).get('total_premium', total_calc_premium), help='This is the total premium paid by the client for all plans')
+            total_actual_premium = st.number_input(f'Input the actual total premium paid by {client}', value=existing_data.get('client_info', {}).get('total_premium', 0), help='This is the total premium paid by the client for all plans')
             upsell_reprice_doc = st.file_uploader('If Client was Repriced or Upsold, Upload Evidence', accept_multiple_files=True)
             notes = st.text_area(label='Additional Notes/Remarks', value=existing_data.get('client_info', {}).get('AdditionalNotes', ''), help='Provide any additional information about the client that is relevant to the renewal process')
 
