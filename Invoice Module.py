@@ -73,7 +73,6 @@ active_clients = get_data_from_sql()
 name = st.session_state.get('name', None)
 email = st.session_state.get('email', None)
 
-
 # st.write(active_clients.head())
 
 client = st.sidebar.selectbox(label='Select Client', placeholder='Pick a Client', index=None, options=active_clients['PolicyName'].unique())
@@ -221,9 +220,9 @@ def generate_invoice_number():
                        #replace the last digits with the increment value
                        new_invoice_number =re.sub(r'\d+$', str(incremented_value).zfill(2), invoice_id)
                else:
-                       new_invoice_number = f'AVON/{client_region}/{current_day}/{current_month}/00' 
+                       new_invoice_number = f'AVON/{client_region}/{current_day}/{current_month}/{policyno}/00' 
         else:
-                new_invoice_number = f'AVON/{client_region}/{current_day}/{current_month}/00'
+                new_invoice_number = f'AVON/{client_region}/{current_day}/{current_month}/{policyno}/00'
 
         return new_invoice_number    
 
@@ -240,8 +239,14 @@ def add_thousand_separators(value):
 
 
 def generate_invoice(inv_data, table_data, payment_plan):
-    # Load the DOCX template
-    doc = Document("Client_Renewal_Invoice_Template.docx")
+    #check the user name
+    if name == 'Emmanuel Adigwe':
+        # Load the DOCX template
+        doc = Document("Client_Renewal_SME_Invoice_Template.docx")
+    else:
+        # Load the DOCX template
+        doc = Document("Client_Renewal_Invoice_Template.docx")
+
     
     # Replace non-table placeholders
     for p in doc.paragraphs:
