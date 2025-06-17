@@ -221,6 +221,9 @@ def get_existing_plan_data(client_name, conn):
 def generate_input_fields(client, plan_names, existing_plan_data=None, enable_editing=True):
     plan_data = []
     for i, plan_name in enumerate(plan_names):
+        # Display the plan name at the top of each input section
+        st.markdown(f"### Plan: **{plan_name}**")
+
         # Use the plan_data_dict key format: "{plan_name}_Individual" and "{plan_name}_Family"
         plan_ind_key = f"{plan_name}_Individual"
         plan_fam_key = f"{plan_name}_Family"
