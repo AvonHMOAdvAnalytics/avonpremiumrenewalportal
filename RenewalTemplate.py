@@ -294,7 +294,7 @@ def generate_input_fields(client, plan_names, existing_plan_data=None, enable_ed
         )
         upsell_yr = st.number_input(
             'If Upsell is Yes, Input Year Plan was Upsold',
-            min_value=2019,
+            min_value=None,
             max_value=dt.date.today().year,
             key=f'{plan_name}_upsell_yr',
             value=merged.get('upsell_yr') or 2020,
@@ -313,7 +313,7 @@ def generate_input_fields(client, plan_names, existing_plan_data=None, enable_ed
         )
         repriced_yr = st.number_input(
             f'If {plan_name} was Repriced, Input Repriced Year',
-            min_value=2019,
+            min_value=None,
             max_value=dt.date.today().year,
             key=f'{plan_name}_repriced_yr',
             value=merged.get('repriced_yr') or 2020,
@@ -486,7 +486,7 @@ def assign_scores_n_recommendation(plan_data, mlr, utili,premium):
 def notify_finance_team(client, policyno, name):
 
     finance_email = 'olagoke.dawodu@avonhealthcare.com'
-    cc_email_list = ['financedepartment@avonhealthcare.com', email]
+    cc_email_list = ['financedepartment@avonhealthcare.com', email, 'internalauditriskandcontroldept@avonhealthcare.com']
     cc_email = ','.join(cc_email_list)
     bcc_email = 'bi_dataanalytics@avonhealthcare.com'
     myemail = 'noreply@avonhealthcare.com'
@@ -970,13 +970,15 @@ if client is not None:
                     '''
 
                     audit_message = msg_befor_table + html_table + rec_msg + msg_after_tables
-
                     myemail = 'noreply@avonhealthcare.com'
-                    # password = st.secrets['emailpassword']
                     password = os.environ.get('emailpassword')
                     audit_email = 'internalauditriskandcontroldept@avonhealthcare.com'
                     bcc_email = 'ademola.atolagbe@avonhealthcare.com'
-                    cc_email = 'ajibola.bakare@avonhealthcare.com'
+                    # Dynamically set cc_email based on logged-in user
+                    if name and name.strip().lower() == 'emmanuel.adigwe':
+                        cc_email = 'opeoluwa.adeola@avonhealthcare.com'
+                    else:
+                        cc_email = 'ajibola.bakare@avonhealthcare.com'
                 
                     recipient_1 = [audit_email, cc_email, bcc_email]
                     recipient_2 = [email, bcc_email]
